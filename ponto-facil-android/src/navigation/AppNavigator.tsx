@@ -10,6 +10,8 @@ import ClientsScreen from '../screens/ClientsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import DayScreen from '../screens/DayScreen';
 import ReportsScreen from '../screens/ReportsScreen';
+import LoginScreen from '../screens/LoginScreen';
+import { useAuthStore } from '../store/useAuthStore';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -70,12 +72,20 @@ const MainTabs = () => {
 };
 
 export default function AppNavigator() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Day" component={DayScreen} />
-        <Stack.Screen name="Reports" component={ReportsScreen} />
+        {!isAuthenticated ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Day" component={DayScreen} />
+            <Stack.Screen name="Reports" component={ReportsScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
