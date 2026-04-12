@@ -2,8 +2,8 @@ import axios from 'axios';
 import * as Application from 'expo-application';
 import { useAuthStore } from '../store/useAuthStore';
 
-// For Android emulator, 10.0.2.2 points to host localhost
-const API_URL = 'http://10.0.2.2:3000/api';
+// Point to Render production API
+const API_URL = 'https://pontofacil-72p0.onrender.com/api';
 
 const syncApi = axios.create({
   baseURL: API_URL,
@@ -14,12 +14,14 @@ syncApi.interceptors.request.use(async (config) => {
   const token = useAuthStore.getState().token;
   const deviceId = Application.androidId;
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  
-  if (deviceId) {
-    config.headers['x-device-id'] = deviceId;
+  if (config.headers) {
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    if (deviceId) {
+      config.headers['x-device-id'] = deviceId;
+    }
   }
 
   return config;
