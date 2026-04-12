@@ -1,0 +1,27 @@
+/* App-level overrides and utilities */
+
+/* Smooth scrollbar for overflow areas */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4c1cd;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #82737d;
+}
+
+/* Prevent text selection on UI chrome (sidebar, headers) */
+.select-none {
+  user-select: none;
+}
+
+/* Electron: disable drag on the window by default */
+body {
+  -webkit-app-region: no-drag;
+  overflow: hidden;
+}

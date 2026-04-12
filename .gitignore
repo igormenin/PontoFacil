@@ -1,0 +1,19 @@
+# AGENT
+.agent/
+logs/
+*.log
+agkit_mcp_prompt.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Subfolders will use their own .gitignore for node_modules, etc.
+# But as a fallback:
+node_modules/
+.env
+dist/
+build/
+.expo/
+*.exe
+*.apk
