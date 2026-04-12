@@ -1,15 +1,27 @@
-# Ignore everything that is NOT needed for the Android build
+# IGNORE TUDO O QUE NÃO É CÓDIGO FONTE DO MOBILE
 node_modules/
 **/node_modules/
+**/.expo/
 .expo/
-**/dist/
-**/build/
-**/release/
-**/*.apk
-**/*.exe
-**/*.log
-Documentos/
+dist/
+build/
+release/
+bin/
+obj/
+*.apk
+*.exe
+*.log
+*.zip
+*.sql
 
-# No monorepo, ignore siblings entirely during EAS build
-backend/
-pontofacil-electron/
+# IGNORAR IRMÃOS DO MONOLITO COMPLETAMENTE
+backend/**
+pontofacil-electron/**
+Documentos/**
+logs/**
+
+# IGNORAR CACHES ESPECÍFICOS DE MOBILE
+ponto-facil-android/node_modules/
+ponto-facil-android/.expo/
+ponto-facil-android/android/**
+ponto-facil-android/ios/**
