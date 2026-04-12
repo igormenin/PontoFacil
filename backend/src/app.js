@@ -20,8 +20,8 @@ import { specs } from './docs/swagger.js';
 const app = express();
 
 // Security Middlewares
-app.use(helmet());
 app.use(cors());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(limiter);
 
 // Parse JSON
