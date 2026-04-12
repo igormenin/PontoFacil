@@ -1,11 +1,15 @@
+# Ignore everything that is NOT needed for the Android build
 node_modules/
 **/node_modules/
 .expo/
 **/dist/
+**/build/
+**/release/
 **/*.apk
 **/*.exe
 **/*.log
 Documentos/
-backend/node_modules/
-pontofacil-electron/node_modules/
-ponto-facil-android/node_modules/
+
+# No monorepo, ignore siblings entirely during EAS build
+backend/
+pontofacil-electron/
