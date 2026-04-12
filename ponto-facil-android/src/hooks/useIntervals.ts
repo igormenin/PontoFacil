@@ -1,0 +1,107 @@
+import { useState, useCallback, useEffect } from 'react';
+import { getDatabase } from '../database/db';
+import { calculateDuration } from '../utils/calcHoras';
+
+export interface Interval {
+  id: number;
+  server_id?: number | null;
+  dia_id: number;
+  cliente_id: number;
+  cliente_nome?: string;
+  ordem: number;
+  inicio: string;
+  fim?: string | null;
+  anotacoes?: string | null;
+  valor_hora?: number;
+  valor_total?: number;
+  sync_status: string;
+}
+
+export function useIntervals(dayId?: number) {
+  const [intervals, setIntervals] = useState<Interval[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchIntervals = useCallback(async () => {
+    if (!dayId) return;
+    setLoading(true);
+    try {
+      const db = await getDatabase();
+      const result = await db.getAllAsync<any>(
+        `SELECT i.*, c.nome as cliente_nome 
+         FROM intervalos i 
+         LEFT JOIN clientes c ON i.cliente_id = c.id 
+         WHERE i.dia_id = ? 
+         ORDER BY i.ordem`,
+        [dayId]
+      );
+      setIntervals(result);
+    } catch (error) {
+      console.error('Error fetching intervals:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dayId]);
+
+  const addInterval = async (data: Omit<Interval, 'id' | 'sync_status' | 'ordem' | 'valor_total' | 'valor_hora'>) => {
+    try {
+      const db = await getDatabase();
+      const now = Date.now();
+      
+      // Calculate derived fields
+      const horas = data.fim ? calculateDuration(data.inicio, data.fim) : 0;
+      
+      // Get current valor_hora for client (For MVP, we'll try to find any valor_hora record, or just use 0 if not found)
+      // Note: Real logic would involve valor_hora_base table
+      const valorHora = 0; 
+      const valorTotal = horas * valorHora;
+
+      // Determine order
+      const countRes = await db.getFirstAsync<any>('SELECT COUNT(*) as count FROM intervalos WHERE dia_id = ?', [data.dia_id]);
+      const ordem = (countRes?.count || 0) + 1;
+
+      const result = await db.runAsync(
+        `INSERT INTO intervalos (dia_id, cliente_id, ordem, inicio, fim, anotacoes, valor_hora, valor_total, sync_status, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.dia_id, data.cliente_id, ordem, data.inicio, data.fim || null, data.anotacoes || null, valorHora, valorTotal, 'pending_create', now]
+      );
+
+      // Log to sync_queue
+      await db.runAsync(
+        'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
+        ['intervalos', result.lastInsertRowId, 'CREATE', JSON.stringify({ ...data, ordem, valorHora, valorTotal }), now]
+      );
+
+      await fetchIntervals();
+      return result.lastInsertRowId;
+    } catch (error) {
+      console.error('Error adding interval:', error);
+      throw error;
+    }
+  };
+
+  const deleteInterval = async (id: number) => {
+    try {
+      const db = await getDatabase();
+      const now = Date.now();
+
+      await db.runAsync('DELETE FROM intervalos WHERE id = ?', [id]);
+
+      // Log to sync_queue
+      await db.runAsync(
+        'INSERT INTO sync_queue (table_name, local_id, operation, created_at) VALUES (?, ?, ?, ?)',
+        ['intervalos', id, 'DELETE', now]
+      );
+
+      await fetchIntervals();
+    } catch (error) {
+      console.error('Error deleting interval:', error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    fetchIntervals();
+  }, [fetchIntervals]);
+
+  return { intervals, loading, addInterval, deleteInterval, refresh: fetchIntervals };
+}
