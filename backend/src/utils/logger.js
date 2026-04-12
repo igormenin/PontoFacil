@@ -10,8 +10,7 @@ const levels = {
 };
 
 const level = () => {
-  const isDevelopment = env.NODE_ENV === 'development';
-  return isDevelopment ? 'debug' : 'warn';
+  return 'info'; // Set to info for both to see startup logs on Render
 };
 
 const colors = {
@@ -34,12 +33,18 @@ const format = winston.format.combine(
 
 const transports = [
   new winston.transports.Console(),
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-  }),
-  new winston.transports.File({ filename: 'logs/all.log' }),
 ];
+
+// Only add file transports in development
+if (env.NODE_ENV === 'development') {
+  transports.push(
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+    }),
+    new winston.transports.File({ filename: 'logs/all.log' }),
+  );
+}
 
 export const logger = winston.createLogger({
   level: level(),
