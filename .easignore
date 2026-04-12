@@ -1,0 +1,11 @@
+node_modules/
+**/node_modules/
+.expo/
+**/dist/
+**/*.apk
+**/*.exe
+**/*.log
+Documentos/
+backend/node_modules/
+pontofacil-electron/node_modules/
+ponto-facil-android/node_modules/
