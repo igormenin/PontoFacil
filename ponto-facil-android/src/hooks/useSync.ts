@@ -60,7 +60,9 @@ export function useSync() {
       const tableMap: Record<string, string> = {
         'cliente': 'clientes',
         'dia': 'dias',
-        'intervalo': 'intervalos'
+        'intervalo': 'intervalos',
+        'mes': 'meses',
+        'feriado': 'feriados'
       };
 
       for (const [remoteTable, records] of Object.entries(changes)) {
@@ -108,6 +110,20 @@ export function useSync() {
               } else {
                 await db.runAsync(`INSERT INTO intervalos (dia_id, cliente_id, ordem, inicio, fim, anotacoes, valor_hora, valor_total, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
               }
+            }
+          } else if (remoteTable === 'mes') {
+            const data = [remote.mes_ano_mes, remote.mes_valor_hora, remote.mes_horas_meta, remote.mes_horas_dia, remote.mes_dias_uteis, remote.mes_estimativa, remote.mes_realizado, 'synced', serverId];
+            if (existing) {
+              await db.runAsync(`UPDATE meses SET ano_mes = ?, valor_hora = ?, horas_meta = ?, horas_dia = ?, dias_uteis = ?, estimativa = ?, realizado = ?, sync_status = ? WHERE server_id = ?`, data);
+            } else {
+              await db.runAsync(`INSERT INTO meses (ano_mes, valor_hora, horas_meta, horas_dia, dias_uteis, estimativa, realizado, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
+            }
+          } else if (remoteTable === 'feriado') {
+            const data = [remote.fer_data, remote.fer_nome, remote.fer_tipo, 'synced', serverId];
+            if (existing) {
+              await db.runAsync(`UPDATE feriados SET data = ?, nome = ?, tipo = ?, sync_status = ? WHERE server_id = ?`, data);
+            } else {
+              await db.runAsync(`INSERT INTO feriados (data, nome, tipo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
             }
           }
         }

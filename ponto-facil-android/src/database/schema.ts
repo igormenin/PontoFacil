@@ -48,4 +48,28 @@ export const SQL_SCHEMA = `
     payload TEXT, -- JSON string
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS meses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER UNIQUE,
+    ano_mes TEXT UNIQUE NOT NULL, -- YYYY-MM
+    valor_hora REAL,
+    horas_meta INTEGER DEFAULT 0,
+    horas_dia INTEGER DEFAULT 8,
+    dias_uteis INTEGER DEFAULT 0,
+    estimativa REAL DEFAULT 0,
+    realizado REAL DEFAULT 0,
+    sync_status TEXT DEFAULT 'synced',
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS feriados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER UNIQUE,
+    data TEXT UNIQUE NOT NULL,
+    nome TEXT NOT NULL,
+    tipo TEXT,
+    sync_status TEXT DEFAULT 'synced',
+    updated_at INTEGER NOT NULL
+  );
 `;

@@ -199,6 +199,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#F4EBF6',
   },
+  badgeSynced: {
+    backgroundColor: '#E6FFF5',
+  },
+  badgePending: {
+    backgroundColor: '#FFF0F7',
+  },
   badgeText: {
     fontSize: 10,
     fontWeight: 'bold',

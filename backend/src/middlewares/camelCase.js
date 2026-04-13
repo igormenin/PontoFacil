@@ -5,6 +5,11 @@ import { keysToCamel } from '../utils/mapper.js';
  * It intercepts the original `res.json` and applies a transformation.
  */
 export const camelCaseMiddleware = (req, res, next) => {
+  // Skip transformation for sync routes to maintain compatibility with Mobile sync protocol
+  if (req.path.includes('/sync')) {
+    return next();
+  }
+
   const originalJson = res.json;
 
   res.json = (body) => {

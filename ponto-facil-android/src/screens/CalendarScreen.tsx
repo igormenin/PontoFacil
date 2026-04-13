@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollAreaView, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Dimensions } from 'react-native';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, DollarSign, Clock, TrendingUp } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';

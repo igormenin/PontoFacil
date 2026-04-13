@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';
+import { useSync } from '../hooks/useSync';
+import { useAuthStore } from '../store/useAuthStore';
 
 const { width } = Dimensions.get('window');
 
@@ -23,7 +25,19 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
 
 export default function DashboardScreen() {
   const navigation = useNavigation<any>();
-  const { summary } = useMonths();
+  const { summary, refresh } = useMonths();
+  const { performSync, syncing } = useSync();
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    const initSync = async () => {
+      const success = await performSync();
+      if (success) {
+        refresh(); // Refresh months data after sync
+      }
+    };
+    initSync();
+  }, [performSync, refresh]);
 
   const navigateToDay = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -40,8 +54,16 @@ export default function DashboardScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Olá, Igor</Text>
-          <Text style={styles.date}>{todayStr}</Text>
+          <Text style={styles.greeting}>Olá, {user?.nome?.split(' ')[0] || 'Usuário'}</Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.date}>{todayStr}</Text>
+            {syncing && (
+              <View style={styles.syncIndicator}>
+                <ActivityIndicator size={12} color="#9B2F96" />
+                <Text style={styles.syncText}>Sincronizando...</Text>
+              </View>
+            )}
+          </View>
         </View>
         <TouchableOpacity style={styles.profileButton} onPress={navigateToCalendar}>
           <CalendarIcon color="#631660" size={24} />
@@ -127,6 +149,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4EBF6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  syncIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F4EBF6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  syncText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#9B2F96',
+    textTransform: 'uppercase',
   },
   statsGrid: {
     flexDirection: 'row',
