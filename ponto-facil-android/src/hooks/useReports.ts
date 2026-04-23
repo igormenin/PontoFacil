@@ -110,11 +110,11 @@ export function useReports() {
     try {
       const data = await fetchReportData(month, year, clientId);
       const csvContent = generateReportCSV(data);
-      
+      const FS = FileSystem as any;
       const fileName = `Relatorio_${data.period.replace('/', '-')}${clientId ? '_Filtrado' : ''}.csv`;
-      const fileUri = FileSystem.cacheDirectory + fileName;
+      const fileUri = FS.cacheDirectory + fileName;
       
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
+      await FS.writeAsStringAsync(fileUri, csvContent, { encoding: FS.EncodingType.UTF8 });
       await Sharing.shareAsync(fileUri, { 
         mimeType: 'text/csv',
         dialogTitle: `Exportação CSV - ${data.period}`

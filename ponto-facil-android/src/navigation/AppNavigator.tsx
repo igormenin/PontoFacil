@@ -2,7 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
-import { LayoutDashboard, Calendar, Users, Settings } from 'lucide-react-native';
+import { LayoutDashboard, Calendar, Users, Settings as SettingsIcon } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import CalendarScreen from '../screens/CalendarScreen';
@@ -11,32 +12,40 @@ import SettingsScreen from '../screens/SettingsScreen';
 import DayScreen from '../screens/DayScreen';
 import ReportsScreen from '../screens/ReportsScreen';
 import LoginScreen from '../screens/LoginScreen';
+import FeriadosScreen from '../screens/FeriadosScreen';
+import ValorHoraScreen from '../screens/ValorHoraScreen';
 import { useAuthStore } from '../store/useAuthStore';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 const MainTabs = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#FF00FF', // Magenta
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: '#631660', // Vinho/Marsala
+        tabBarInactiveTintColor: '#82737D',
         tabBarStyle: {
-          backgroundColor: '#1E1E2E',
-          borderTopWidth: 0,
-          elevation: 10,
-          shadowOpacity: 0.1,
-          height: 60,
-          paddingBottom: 8,
+          backgroundColor: '#FFF7FF',
+          borderTopWidth: 1,
+          borderTopColor: '#EEE5F0',
+          elevation: 0,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          paddingTop: 8,
         },
         headerStyle: {
-          backgroundColor: '#6200EE', // Deep Purple
+          backgroundColor: '#631660', // Vinho
+          elevation: 0,
+          shadowOpacity: 0,
         },
         headerTintColor: '#FFF',
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerTitleAlign: 'center',
       }}
     >
       <Tab.Screen 
@@ -64,7 +73,7 @@ const MainTabs = () => {
         name="Configuração" 
         component={SettingsScreen} 
         options={{
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
@@ -84,6 +93,8 @@ export default function AppNavigator() {
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Day" component={DayScreen} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
+            <Stack.Screen name="Feriados" component={FeriadosScreen} />
+            <Stack.Screen name="ValorHora" component={ValorHoraScreen} />
           </>
         )}
       </Stack.Navigator>

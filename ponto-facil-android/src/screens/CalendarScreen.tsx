@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Dimensi
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, DollarSign, Clock, TrendingUp } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';
+import { theme } from '../theme/theme';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 7;
@@ -105,7 +106,7 @@ export default function CalendarScreen() {
                 style={[styles.dayCell, isToday && styles.todayCell]}
                 onPress={() => {
                    const dateStr = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
-                   navigation.navigate('DayScreen', { date: dateStr });
+                   navigation.navigate('Day', { date: dateStr });
                 }}
               >
                 <Text style={[styles.dayText, isToday && styles.todayText]}>{item.day}</Text>
@@ -123,10 +124,10 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7FF', // Lavender Paper
+    backgroundColor: theme.colors.background,
   },
   topSection: {
-    backgroundColor: '#F4EBF6', // surface_container
+    backgroundColor: theme.colors.surface_container,
     paddingTop: 60,
     paddingBottom: 24,
     borderBottomLeftRadius: 32,
@@ -152,13 +153,14 @@ const styles = StyleSheet.create({
   },
   monthName: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#460045',
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.primary,
   },
   yearName: {
     fontSize: 14,
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     marginTop: 2,
+    fontFamily: theme.fonts.regular,
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -179,14 +181,15 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E1A22',
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.on_surface,
     marginVertical: 4,
   },
   summaryLabel: {
     fontSize: 10,
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     textTransform: 'uppercase',
+    fontFamily: theme.fonts.regular,
   },
   calendarContainer: {
     flex: 1,
@@ -202,8 +205,8 @@ const styles = StyleSheet.create({
     width: COLUMN_WIDTH,
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#631660',
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.primary_container,
   },
   dayCell: {
     width: COLUMN_WIDTH,
@@ -219,20 +222,21 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: '#1E1A22',
+    color: theme.colors.on_surface,
+    fontFamily: theme.fonts.medium,
   },
   todayCell: {
-    backgroundColor: '#631660',
+    backgroundColor: theme.colors.primary_container,
   },
   todayText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: theme.colors.on_primary,
+    fontFamily: theme.fonts.bold,
   },
   workIndicator: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#9B2F96',
+    backgroundColor: '#631660',
     marginTop: 4,
   }
 });

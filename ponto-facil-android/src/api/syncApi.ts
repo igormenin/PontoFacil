@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as Application from 'expo-application';
+import { Platform } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 
 // Point to Render production API
@@ -7,12 +8,12 @@ const API_URL = 'https://pontofacil-72p0.onrender.com/api';
 
 const syncApi = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: 60000,
 });
 
 syncApi.interceptors.request.use(async (config) => {
   const token = useAuthStore.getState().token;
-  const deviceId = Application.androidId;
+  const deviceId = Platform.OS === 'android' ? Application.getAndroidId() : 'ios-device';
 
   if (config.headers) {
     if (token) {

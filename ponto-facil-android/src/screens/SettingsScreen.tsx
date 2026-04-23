@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Dimensions, ScrollView } from 'react-native';
-import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText } from 'lucide-react-native';
+import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSync } from '../hooks/useSync';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { theme } from '../theme/theme';
 
 const LAST_SYNC_KEY = '@PontoFacil:lastSyncAt';
 
@@ -99,7 +100,17 @@ export default function SettingsScreen() {
               </View>
               <Text style={styles.menuItemText}>Exportação e Relatórios</Text>
             </View>
-            <ChevronRight size={20} color="#D4C1CD" />
+            <ChevronRight size={20} color={theme.colors.outline_variant} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Feriados')}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: theme.colors.surface_container }]}>
+                <CalendarOff size={20} color={theme.colors.primary_container} />
+              </View>
+              <Text style={styles.menuItemText}>Feriados Nacionais e Fixos</Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.outline_variant} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
@@ -137,8 +148,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#460045',
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
   },
   section: {
     marginTop: 24,
@@ -146,12 +157,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#9B2F96',
+    color: theme.colors.secondary,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 16,
     marginLeft: 8,
+    fontFamily: theme.fonts.bold,
   },
   syncCard: {
     backgroundColor: '#FFFFFF',
@@ -210,10 +221,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#D4C1CD',
   },
   syncButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: theme.colors.on_primary,
     fontSize: 16,
     marginLeft: 12,
+    fontFamily: theme.fonts.bold,
   },
   menuItem: {
     flexDirection: 'row',
@@ -242,9 +253,9 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   menuItemText: {
-    color: '#1E1A22',
+    color: theme.colors.on_surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: theme.fonts.medium,
   },
   menuItemRight: {
     flexDirection: 'row',
@@ -260,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   versionText: {
-    color: '#9B2F96',
+    color: '#631660',
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 2,

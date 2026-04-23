@@ -1,15 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, Dimensions } from 'react-native';
-import { Plus, User, Search, X, Briefcase } from 'lucide-react-native';
+import { Plus, Search, X, Briefcase, Trash2, Edit2 } from 'lucide-react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 import { useClients } from '../hooks/useClients';
+import { theme } from '../theme/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function ClientsScreen() {
-  const { clients, loading, addClient } = useClients();
+  const navigation = useNavigation<any>();
+  const { clients, loading, addClient, deleteClient } = useClients();
   const [modalVisible, setModalVisible] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientCnpj, setNewClientCnpj] = useState('');
+  const [search, setSearch] = useState('');
+
+  const filteredClients = useMemo(() => {
+    if (!search.trim()) return clients;
+    const lowerSearch = search.toLowerCase();
+    return clients.filter(c => 
+      c.nome.toLowerCase().includes(lowerSearch) || 
+      (c.cnpj && c.cnpj.toLowerCase().includes(lowerSearch))
+    );
+  }, [clients, search]);
 
   const handleAddClient = async () => {
     if (newClientName.trim()) {
@@ -20,21 +34,36 @@ export default function ClientsScreen() {
     }
   };
 
+  const renderRightActions = (id: number) => {
+    return (
+      <View style={styles.swipeActionsContainer}>
+        <TouchableOpacity style={[styles.swipeAction, { backgroundColor: theme.colors.error }]} onPress={() => deleteClient(id)}>
+          <Trash2 color={theme.colors.on_error} size={20} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderClient = ({ item }: any) => (
-    <View style={styles.clientCard}>
-      <View style={styles.clientIcon}>
-        <Briefcase color="#631660" size={24} />
-      </View>
-      <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{item.nome}</Text>
-        <Text style={styles.clientCnpj}>{item.cnpj || 'Sem identificação'}</Text>
-      </View>
-      <View style={[styles.badge, item.sync_status === 'synced' ? styles.badgeSynced : styles.badgePending]}>
-        <Text style={[styles.badgeText, { color: item.sync_status === 'synced' ? '#03DAC6' : '#9B2F96' }]}>
-          {item.sync_status === 'synced' ? 'OK' : 'Pendente'}
-        </Text>
-      </View>
-    </View>
+    <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+      <TouchableOpacity 
+        style={styles.clientCard}
+        onPress={() => navigation.navigate('ValorHora', { clienteId: item.id, clienteNome: item.nome })}
+      >
+        <View style={styles.clientIcon}>
+          <Briefcase color={theme.colors.primary_container} size={24} />
+        </View>
+        <View style={styles.clientInfo}>
+          <Text style={styles.clientName}>{item.nome}</Text>
+          <Text style={styles.clientCnpj}>{item.cnpj || 'Sem identificação'}</Text>
+        </View>
+        <View style={[styles.badge, item.sync_status === 'synced' ? styles.badgeSynced : styles.badgePending]}>
+          <Text style={[styles.badgeText, { color: item.sync_status === 'synced' ? '#03DAC6' : theme.colors.secondary }]}>
+            {item.sync_status === 'synced' ? 'OK' : 'Pendente'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
   );
 
   return (
@@ -45,17 +74,19 @@ export default function ClientsScreen() {
           <Search color="#50434D" size={20} />
           <TextInput 
             placeholder="Buscar..." 
-            placeholderTextColor="#82737D" 
+            placeholderTextColor={theme.colors.outline} 
             style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
           />
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#631660" style={styles.loader} />
+        <ActivityIndicator size="large" color={theme.colors.primary_container} style={styles.loader} />
       ) : (
         <FlatList
-          data={clients}
+          data={filteredClients}
           renderItem={renderClient}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
@@ -127,7 +158,7 @@ export default function ClientsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7FF',
+    backgroundColor: theme.colors.background,
   },
   header: {
     paddingHorizontal: 24,
@@ -136,23 +167,24 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#460045',
+    color: theme.colors.primary,
     marginBottom: 16,
+    fontFamily: theme.fonts.bold,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F4EBF6',
+    backgroundColor: theme.colors.surface_container,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 52,
   },
   searchInput: {
     flex: 1,
-    color: '#1E1A22',
+    color: theme.colors.on_surface,
     marginLeft: 12,
     fontSize: 16,
+    fontFamily: theme.fonts.regular,
   },
   list: {
     paddingHorizontal: 16,
@@ -184,20 +216,21 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   clientName: {
-    color: '#1E1A22',
+    color: theme.colors.on_surface,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
   },
   clientCnpj: {
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     fontSize: 12,
     marginTop: 2,
+    fontFamily: theme.fonts.regular,
   },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#F4EBF6',
+    backgroundColor: theme.colors.surface_container,
   },
   badgeSynced: {
     backgroundColor: '#E6FFF5',
@@ -207,8 +240,21 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
     textTransform: 'uppercase',
+  },
+  swipeActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  swipeAction: {
+    width: 64,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
   },
   fab: {
     position: 'absolute',
@@ -234,10 +280,11 @@ const styles = StyleSheet.create({
     marginTop: 100,
   },
   emptyText: {
-    color: '#82737D',
+    color: theme.colors.outline,
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,
+    fontFamily: theme.fonts.regular,
   },
   modalOverlay: {
     flex: 1,
@@ -245,7 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface_container_lowest,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -259,8 +306,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#460045',
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
   },
   closeButton: {
     width: 40,
@@ -276,7 +323,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#9B2F96',
+    color: '#631660',
     marginBottom: 8,
     marginLeft: 4,
   },

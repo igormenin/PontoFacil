@@ -55,9 +55,28 @@ export function useClients() {
     }
   };
 
+  const deleteClient = async (id: number) => {
+    try {
+      const db = await getDatabase();
+      const now = Date.now();
+      
+      await db.runAsync('DELETE FROM clientes WHERE id = ?', [id]);
+      
+      await db.runAsync(
+        'INSERT INTO sync_queue (table_name, local_id, operation, created_at) VALUES (?, ?, ?, ?)',
+        ['clientes', id, 'DELETE', now]
+      );
+
+      await fetchClients();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-  return { clients, loading, addClient, refresh: fetchClients };
+  return { clients, loading, addClient, deleteClient, refresh: fetchClients };
 }

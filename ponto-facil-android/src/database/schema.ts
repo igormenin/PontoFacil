@@ -69,7 +69,20 @@ export const SQL_SCHEMA = `
     data TEXT UNIQUE NOT NULL,
     nome TEXT NOT NULL,
     tipo TEXT,
+    fixo INTEGER DEFAULT 0,
     sync_status TEXT DEFAULT 'synced',
     updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS valor_hora_historico (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER UNIQUE,
+    cliente_id INTEGER NOT NULL,
+    valor REAL NOT NULL,
+    mes_inicio TEXT NOT NULL, -- YYYY-MM
+    ativo INTEGER DEFAULT 1,
+    sync_status TEXT DEFAULT 'synced',
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
   );
 `;

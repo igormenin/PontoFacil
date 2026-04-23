@@ -54,7 +54,10 @@ export function useSync() {
 
       // 2. PULL PHASE
       const lastSyncAt = await AsyncStorage.getItem(LAST_SYNC_KEY);
+      console.log(`[Sync] Pulling started. LastSyncAt: ${lastSyncAt}`);
+      
       const { changes, serverTime } = await pullSync(lastSyncAt);
+      console.log(`[Sync] Data received. ServerTime: ${serverTime}. Entities: ${Object.keys(changes || {}).join(', ')}`);
 
       // Reconcile each table
       const tableMap: Record<string, string> = {
@@ -67,9 +70,13 @@ export function useSync() {
 
       for (const [remoteTable, records] of Object.entries(changes)) {
         const localTable = tableMap[remoteTable];
-        if (!localTable) continue;
+        if (!localTable) {
+          console.log(`[Sync] Skipping unknown table: ${remoteTable}`);
+          continue;
+        }
 
         const items = records as any[];
+        console.log(`[Sync] Processing ${items.length} records for ${remoteTable}`);
         for (const remote of items) {
           const serverId = remote[`${remoteTable.substring(0, 3)}_id`];
           
@@ -130,9 +137,14 @@ export function useSync() {
       }
 
       await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
+      console.log(`[Sync] Successful at ${serverTime}`);
       return true;
     } catch (e: any) {
       console.error('Sync failed:', e);
+      if (e.response) {
+        console.error('  Status:', e.response.status);
+        console.error('  Data:', JSON.stringify(e.response.data));
+      }
       setError(e.message || 'Erro desconhecido na sincronização');
       return false;
     } finally {

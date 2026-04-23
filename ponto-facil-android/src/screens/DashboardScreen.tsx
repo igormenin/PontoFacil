@@ -5,6 +5,10 @@ import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';
 import { useSync } from '../hooks/useSync';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDays } from '../hooks/useDays';
+import { useIntervals } from '../hooks/useIntervals';
+import { calculateDuration } from '../utils/calcHoras';
+import { theme } from '../theme/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -17,9 +21,9 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
       <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
         <Icon size={20} color={color} />
       </View>
-      <Text style={styles.cardTitle}>{title}</Text>
+      <Text style={[styles.cardTitle, { fontFamily: theme.fonts.bold }]}>{title}</Text>
     </View>
-    <Text style={styles.cardValue}>{value}</Text>
+    <Text style={[styles.cardValue, { fontFamily: theme.fonts.black }]}>{value}</Text>
   </TouchableOpacity>
 );
 
@@ -28,6 +32,20 @@ export default function DashboardScreen() {
   const { summary, refresh } = useMonths();
   const { performSync, syncing } = useSync();
   const user = useAuthStore((state) => state.user);
+  const { getOrCreateDay } = useDays();
+  const [dayId, setDayId] = React.useState<number | undefined>();
+  const { intervals } = useIntervals(dayId);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    getOrCreateDay(today).then(day => setDayId(day.id)).catch(console.error);
+  }, [getOrCreateDay]);
+
+  const totalHorasHjObj = intervals.reduce((acc, curr) => {
+    return curr.fim ? acc + calculateDuration(curr.inicio, curr.fim) : acc;
+  }, 0);
+  
+  const horasFormatado = `${Math.floor(totalHorasHjObj).toString().padStart(2, '0')}:${Math.round((totalHorasHjObj % 1) * 60).toString().padStart(2, '0')}`;
 
   useEffect(() => {
     const initSync = async () => {
@@ -41,11 +59,11 @@ export default function DashboardScreen() {
 
   const navigateToDay = () => {
     const today = new Date().toISOString().split('T')[0];
-    navigation.navigate('DayScreen', { date: today });
+    navigation.navigate('Day', { date: today });
   };
 
   const navigateToCalendar = () => {
-    navigation.navigate('Calendar');
+    navigation.navigate('Calendário');
   };
 
   const todayStr = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -59,7 +77,7 @@ export default function DashboardScreen() {
             <Text style={styles.date}>{todayStr}</Text>
             {syncing && (
               <View style={styles.syncIndicator}>
-                <ActivityIndicator size={12} color="#9B2F96" />
+                <ActivityIndicator size={12} color="#631660" />
                 <Text style={styles.syncText}>Sincronizando...</Text>
               </View>
             )}
@@ -73,26 +91,26 @@ export default function DashboardScreen() {
       <View style={styles.statsGrid}>
         <DashboardCard 
           title="Horas Hoje" 
-          value="00:00" // Should be dynamic in next iteration
+          value={horasFormatado}
           icon={Clock} 
-          color="#460045" 
-          backgroundColor="#FFFFFF"
+          color={theme.colors.primary} 
+          backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToDay}
         />
         <DashboardCard 
           title="Progresso Mês" 
           value={`${summary.progressPercent.toFixed(0)}%`}
           icon={TrendingUp} 
-          color="#9B2F96" 
-          backgroundColor="#FFFFFF"
+          color={theme.colors.secondary} 
+          backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToCalendar}
         />
         <DashboardCard 
           title="Valor Estimado" 
           value={`R$ ${summary.valueTotal.toFixed(0)}`}
           icon={DollarSign} 
-          color="#631660" 
-          backgroundColor="#FFFFFF"
+          color={theme.colors.primary_container} 
+          backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToCalendar}
         />
       </View>
@@ -134,13 +152,14 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#460045',
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
   },
   date: {
     fontSize: 16,
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     marginTop: 4,
+    fontFamily: theme.fonts.regular,
   },
   profileButton: {
     width: 48,
@@ -168,7 +187,7 @@ const styles = StyleSheet.create({
   syncText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#9B2F96',
+    color: '#631660',
     textTransform: 'uppercase',
   },
   statsGrid: {
@@ -222,12 +241,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#460045',
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
   },
   seeAll: {
-    color: '#9B2F96',
-    fontWeight: '600',
+    color: theme.colors.secondary,
+    fontFamily: theme.fonts.medium,
   },
   emptyState: {
     backgroundColor: '#F4EBF6',
@@ -236,19 +255,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+    fontFamily: theme.fonts.regular,
   },
   addButton: {
-    backgroundColor: '#631660',
+    backgroundColor: theme.colors.primary_container,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   addButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: theme.colors.on_primary,
+    fontFamily: theme.fonts.bold,
   },
 });

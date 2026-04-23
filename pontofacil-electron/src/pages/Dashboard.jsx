@@ -253,7 +253,7 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                           className="w-full bg-[#631660] rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-[#460045]"
                         >
                           <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-[#1e1a22] text-white text-[10px] py-1 px-2 rounded font-bold transition-all">
-                            {item.value.toFixed(1)}h
+                            {item.value.toFixed(2).replace('.', ',')}h
                           </div>
                         </div>
                       </div>
@@ -279,7 +279,7 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                    <div key={client.id} className="group cursor-pointer" onClick={onShowClientes}>
                       <div className="flex justify-between items-end mb-2">
                         <p className="font-black text-[#1e1a22] text-sm group-hover:text-[#631660] transition-colors">{client.name}</p>
-                        <p className="font-bold text-[#631660] text-xs">{client.hours.toFixed(1)}h</p>
+                        <p className="font-bold text-[#631660] text-xs">{client.hours.toFixed(2).replace('.', ',')}h</p>
                       </div>
                       <div className="h-2 w-full bg-[#f4ebf6] rounded-full overflow-hidden">
                         <div 

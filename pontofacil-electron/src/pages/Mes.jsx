@@ -102,9 +102,20 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
   currentDateBRT.setHours(currentDateBRT.getHours() - 3);
   const todayStr = currentDateBRT.toISOString().substring(0, 10);
 
+  // Função utilitária para formatar horas decimais para HHhMM
+  const formatTime = (decimalHours) => {
+    if (!decimalHours || decimalHours <= 0) return '0h00';
+    const hours = Math.floor(decimalHours);
+    const minutes = Math.round((decimalHours % 1) * 60);
+    return `${hours}h${minutes.toString().padStart(2, '0')}`;
+  };
+
   const filteredDias = selectedMes?.filter(dia => {
-    // Esconder dias futuros
-    if (dia.diaData.substring(0, 10) > todayStr) return false;
+    // Mostrar dias com registros mesmo que sejam futuros, ou dias até hoje
+    const hasHours = Number(dia.diaHorasTotal || 0) > 0;
+    const isPastOrToday = dia.diaData.substring(0, 10) <= todayStr;
+    
+    if (!isPastOrToday && !hasHours) return false;
 
     if (filter === 'UTIL') return dia.diaTipo === 'UTIL';
     if (filter === 'FERIADO') return dia.diaTipo === 'FERIADO';
@@ -140,6 +151,86 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
       </div>
     );
   }
+
+  const renderCalendarGrid = () => {
+    const [year, month] = localAnoMes.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    const firstDayIndex = date.getDay(); // 0 (Sun) to 6 (Sat)
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    // Array of days
+    const days = [];
+    for (let i = 0; i < firstDayIndex; i++) {
+       days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+       days.push(i);
+    }
+
+    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    return (
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xl font-black text-[#1e1a22] flex items-center gap-2 uppercase tracking-tight pb-4 border-b-2 border-[#631660] mb-2">
+            <CalendarDays className="text-[#631660]" /> Calendário
+        </h3>
+        <div className="grid grid-cols-7 gap-y-3 gap-x-1 text-center">
+            {weekdays.map(wd => (
+               <div key={wd} className="text-[10px] font-black text-[#82737d] uppercase tracking-tighter py-1">
+                  {wd}
+               </div>
+            ))}
+            {days.map((d, index) => {
+               if (!d) return <div key={`empty-${index}`} className="p-2" />;
+               
+               const currentDateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+               const dayRecord = selectedMes?.find(record => record.diaData.substring(0, 10) === currentDateStr);
+               
+               const isDayToday = currentDateStr === todayStr;
+               const isFuture = currentDateStr > todayStr;
+               
+               let bgColor = isDayToday ? 'bg-[#f4ebf6]' : 'bg-white';
+               let borderClass = isDayToday ? 'border-[#631660] shadow-sm' : 'border-[#eee5f0]';
+               let textColor = 'text-[#1e1a22]';
+
+               if (dayRecord) {
+                   textColor = getDayColor(dayRecord.diaTipo);
+               } else {
+                   const dayOfWeek = (index % 7);
+                   if (dayOfWeek === 0 || dayOfWeek === 6) {
+                       textColor = getDayColor(dayOfWeek === 0 ? 'DOMINGO' : 'SABADO');
+                   }
+               }
+
+               return (
+                   <div 
+                     key={d} 
+                     className={`h-10 w-10 mx-auto flex flex-col items-center justify-center relative rounded-xl font-black text-sm border ${bgColor} ${textColor} ${borderClass} ${isFuture ? 'cursor-default' : 'cursor-pointer hover:shadow-md transition-all'}`}
+                     onClick={() => {
+                         if (isFuture) return;
+                         
+                         const el = document.getElementById(`card-dia-${currentDateStr}`);
+                         if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('ring-2', 'ring-[#631660]', 'ring-offset-2');
+                            setTimeout(() => el.classList.remove('ring-2', 'ring-[#631660]', 'ring-offset-2'), 1500);
+                         } else if (filter !== 'ALL') {
+                            toast.error('Dia está oculto nos filtros atuais.');
+                         }
+                     }}
+                     title={(!isFuture && dayRecord && Number(dayRecord.diaHorasTotal) > 0) ? `${Number(dayRecord.diaHorasTotal).toFixed(2).replace('.', ',')}h - R$ ${Number(dayRecord.diaValorTotal).toFixed(2)}` : undefined}
+                   >
+                     <span>{d}</span>
+                     {dayRecord && Number(dayRecord.diaHorasTotal) > 0 && !isFuture && (
+                        <div className="absolute bottom-1 w-1.5 h-1.5 bg-[#631660] rounded-full shadow-sm" title="Horas lançadas neste dia" />
+                     )}
+                   </div>
+               )
+            })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -201,7 +292,7 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
                 <Settings size={12} />
               </button>
             </div>
-            <p className="text-2xl font-black text-[#1e1a22]">{horasPrevistas.toFixed(1)}h</p>
+            <p className="text-2xl font-black text-[#1e1a22]">{Number(horasPrevistas).toFixed(2).replace('.', ',')}h</p>
             {showHorasConfig && (
               <div className="absolute top-full mt-2 bg-white rounded-xl shadow-xl border border-[#eee5f0] p-4 z-20 min-w-[200px]">
                 <label className="text-[10px] font-black text-[#631660] uppercase tracking-[0.2em] block mb-2">Horas por dia</label>
@@ -234,7 +325,7 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
          {/* 4 - Horas Realizadas */}
          <div className="flex flex-col items-center justify-center p-4 border-r border-[#d4c1cd]">
             <p className="text-[10px] font-black text-[#82737d] uppercase tracking-[0.2em] mb-1">Horas Realizadas</p>
-            <p className="text-2xl font-black text-[#1e1a22]">{stats.totalHoras.toFixed(1)}h</p>
+            <p className="text-2xl font-black text-[#1e1a22]">{Number(stats.totalHoras || 0).toFixed(2).replace('.', ',')}h</p>
          </div>
          {/* 5 - Total Realizado */}
          <div className="flex flex-col items-center justify-center p-4">
@@ -245,11 +336,19 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
 
       {/* Listagem Estilo Tabela Editorial */}
       <div className="flex-1 overflow-auto px-10 py-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-            <div className="flex justify-between items-center border-b-2 border-[#631660] pb-4">
-                <h3 className="text-xl font-black text-[#1e1a22] flex items-center gap-2 uppercase tracking-tight">
-                    <ListTodo className="text-[#631660]" /> Registros Diários
-                </h3>
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 items-start">
+            
+            {/* O Calendário Fixo ficará Aqui */}
+            <div className="w-full lg:w-[360px] shrink-0 bg-white border border-[#eee5f0] rounded-3xl p-6 shadow-sm sticky top-0">
+               {renderCalendarGrid()}
+            </div>
+
+            {/* Lista dos Dias */}
+            <div className="flex-1 space-y-8 w-full min-w-0">
+                <div className="flex justify-between items-center border-b-2 border-[#631660] pb-4">
+                    <h3 className="text-xl font-black text-[#1e1a22] flex items-center gap-2 uppercase tracking-tight">
+                        <ListTodo className="text-[#631660]" /> Registros Diários
+                    </h3>
                 <div className="flex bg-white p-1 rounded-xl border border-[#eee5f0] shadow-sm">
                     {['ALL', 'UTIL', 'FERIADO'].map(opt => (
                         <button 
@@ -277,6 +376,7 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
                     return (
                         <div 
                             key={dia.diaId}
+                            id={`card-dia-${dia.diaData.substring(0, 10)}`}
                             onClick={() => onSelectDia(dia)}
                             className={`p-5 rounded-2xl border flex items-center justify-between hover:shadow-md hover:border-[#631660] transition-all cursor-pointer group relative overflow-hidden ${
                                 isToday ? 'bg-[#f4ebf6] border-[#631660] shadow-sm' : 'bg-white border-[#eee5f0]'
@@ -319,7 +419,7 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
                                 <div className="text-right">
                                     <p className="text-[10px] font-bold text-[#82737d] uppercase tracking-widest">Horas</p>
                                     <p className="font-black text-[#1e1a22] text-xl">
-                                        {Number(dia.diaHorasTotal) > 0 ? `${Math.floor(dia.diaHorasTotal)}h${Math.round((dia.diaHorasTotal % 1) * 60).toString().padStart(2, '0')}` : '--'}
+                                        {Number(dia.diaHorasTotal) > 0 ? formatTime(dia.diaHorasTotal) : '--'}
                                     </p>
                                 </div>
                                 <div className="text-right w-24">
@@ -336,6 +436,7 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
                     );
                 })}
             </div>
+          </div>
         </div>
       </div>
       <Footer />

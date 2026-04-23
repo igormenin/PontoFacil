@@ -5,6 +5,7 @@ import { useIntervals, Interval } from '../hooks/useIntervals';
 import { useDays, DayRecord } from '../hooks/useDays';
 import IntervalForm from '../components/IntervalForm';
 import { calculateDuration } from '../utils/calcHoras';
+import { theme } from '../theme/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -48,7 +49,7 @@ export default function DayScreen({ route, navigation }: any) {
     <View style={styles.timelineItem}>
       {/* Timeline Pulse Component */}
       <View style={styles.pulseContainer}>
-        <View style={[styles.pulseNode, { backgroundColor: '#631660' }]} />
+        <View style={[styles.pulseNode, { backgroundColor: theme.colors.primary_container }]} />
         {index < intervals.length - 1 && <View style={styles.pulseLine} />}
       </View>
 
@@ -57,12 +58,12 @@ export default function DayScreen({ route, navigation }: any) {
           <View>
             <Text style={styles.clientName}>{item.cliente_nome || 'Cliente avulso'}</Text>
             <View style={styles.timeRow}>
-              <Clock size={12} color="#9B2F96" />
+              <Clock size={12} color={theme.colors.secondary} />
               <Text style={styles.timeRange}>{item.inicio} — {item.fim || 'Em aberto'}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => deleteInterval(item.id)} style={styles.deleteButton}>
-            <Trash2 size={18} color="#9B2F96" />
+            <Trash2 size={18} color={theme.colors.error} />
           </TouchableOpacity>
         </View>
         
@@ -98,7 +99,7 @@ export default function DayScreen({ route, navigation }: any) {
 
       <View style={styles.summaryBox}>
         <View style={styles.summaryItem}>
-          <Text style={styles.heroNumber}>{totalHoras.toFixed(1)}</Text>
+          <Text style={styles.heroNumber}>{totalHoras.toFixed(2).replace('.', ',')}</Text>
           <Text style={styles.summaryLabel}>HORAS TOTAIS</Text>
         </View>
         <View style={styles.summaryDivider} />
@@ -162,7 +163,7 @@ export default function DayScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7FF', // Lavender Paper
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -184,14 +185,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    color: '#460045',
+    color: theme.colors.primary,
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
   },
   headerSubtitle: {
-    color: '#50434D',
+    color: theme.colors.on_surface_variant,
     fontSize: 14,
     textTransform: 'capitalize',
+    fontFamily: theme.fonts.regular,
   },
   summaryBox: {
     flexDirection: 'row',
@@ -213,13 +215,13 @@ const styles = StyleSheet.create({
   },
   heroNumber: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#460045',
+    fontFamily: theme.fonts.black,
+    color: theme.colors.primary,
   },
   summaryLabel: {
     fontSize: 10,
-    color: '#9B2F96',
-    fontWeight: 'bold',
+    color: theme.colors.secondary,
+    fontFamily: theme.fonts.bold,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -267,9 +269,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   clientName: {
-    color: '#1E1A22',
+    color: theme.colors.on_surface,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
     marginBottom: 4,
   },
   timeRow: {
@@ -277,9 +279,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeRange: {
-    color: '#9B2F96',
+    color: theme.colors.secondary,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: theme.fonts.medium,
     marginLeft: 6,
   },
   deleteButton: {
@@ -302,16 +304,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationText: {
-    color: '#82737D',
+    color: theme.colors.on_surface_variant,
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: theme.fonts.bold,
     textTransform: 'uppercase',
   },
   syncIndicator: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#9B2F96',
+    backgroundColor: '#631660',
   },
   fab: {
     position: 'absolute',
