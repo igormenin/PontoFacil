@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { getDatabase } from '../database/db';
 import { theme } from '../theme/theme';
-import { ArrowLeft, Database } from 'lucide-react-native';
+import { ArrowLeft, Database, Share2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSync } from '../hooks/useSync';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 export default function DatabaseDebugScreen() {
   const navigation = useNavigation();
@@ -44,7 +46,7 @@ export default function DatabaseDebugScreen() {
     try {
       const db = await getDatabase();
       // Clear queue
-      await db.runAsync('DELETE FROM sync_queue');
+      await db.execAsync('DELETE FROM sync_queue');
       // Reset last sync time
       await AsyncStorage.removeItem('@PontoFacil:lastSyncAt');
       
@@ -60,6 +62,32 @@ export default function DatabaseDebugScreen() {
     }
   };
 
+  const handleExportDB = async () => {
+    try {
+      const docDir = (FileSystem as any).documentDirectory;
+      const dbPath = `${docDir}SQLite/pontofacil.db`;
+      const fileInfo = await FileSystem.getInfoAsync(dbPath);
+      
+      if (!fileInfo.exists) {
+        Alert.alert('Erro', 'Arquivo do banco de dados não encontrado.');
+        return;
+      }
+      
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (!isSharingAvailable) {
+        Alert.alert('Erro', 'Compartilhamento não disponível neste dispositivo.');
+        return;
+      }
+      
+      await Sharing.shareAsync(dbPath, {
+        mimeType: 'application/x-sqlite3',
+        dialogTitle: 'Exportar Banco de Dados Ponto Fácil'
+      });
+    } catch (e: any) {
+      Alert.alert('Erro ao exportar', e.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -67,6 +95,10 @@ export default function DatabaseDebugScreen() {
           <ArrowLeft size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Debug do Banco</Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={handleExportDB} style={styles.exportBtn}>
+          <Share2 size={24} color="#FFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -106,6 +138,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   backBtn: { marginRight: 16 },
+  exportBtn: { padding: 4 },
   title: {
     color: '#FFF',
     fontSize: 20,

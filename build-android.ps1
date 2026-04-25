@@ -45,7 +45,10 @@ Write-Host "`n--- Iniciando Compilacao Nativa (Metodo Windows) ---" -ForegroundC
 # Entrar no diretorio do mobile
 cd ponto-facil-android
 
-Write-Host "1. Gerando pastas nativas (prebuild)..."
+Write-Host "0. Incrementando versao de build (versionCode) no app.json..." -ForegroundColor Cyan
+node -e "const fs=require('fs'); const file='./app.json'; const app=JSON.parse(fs.readFileSync(file)); app.expo.android = app.expo.android || {}; app.expo.android.versionCode = (app.expo.android.versionCode || 1) + 1; if(app.expo.version){ let p=app.expo.version.split('.'); p[2]=(parseInt(p[2]||0)+1).toString(); app.expo.version=p.join('.'); } else { app.expo.version='1.0.1'; } fs.writeFileSync(file, JSON.stringify(app, null, 2)); console.log('Nova versao: ' + app.expo.version + ' (Code: ' + app.expo.android.versionCode + ')');"
+
+Write-Host "`n1. Gerando pastas nativas (prebuild)..."
 npx expo prebuild --platform android --no-install
 
 Write-Host "`n2. Compilando APK via Gradle..."
