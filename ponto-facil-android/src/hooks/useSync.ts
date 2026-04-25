@@ -56,7 +56,11 @@ export function useSync() {
       }
 
       // 2. PULL PHASE
-      const lastSyncAt = await AsyncStorage.getItem(LAST_SYNC_KEY);
+      let lastSyncAt = await AsyncStorage.getItem(LAST_SYNC_KEY);
+      if (!lastSyncAt || lastSyncAt === 'null') {
+        lastSyncAt = null;
+      }
+      
       console.log(`[Sync] Pulling started. LastSyncAt: ${lastSyncAt}`);
       
       const { changes, serverTime } = await pullSync(lastSyncAt);
@@ -70,6 +74,8 @@ export function useSync() {
         'mes': 'meses',
         'feriado': 'feriados'
       };
+
+      const sanitize = (arr: any[]) => arr.map(v => v === undefined ? null : v);
 
       for (const [remoteTable, records] of Object.entries(changes)) {
         const localTable = tableMap[remoteTable];
@@ -100,54 +106,62 @@ export function useSync() {
 
           try {
             if (remoteTable === 'cliente') {
-              const data = [remote.cli_nome ?? '', remote.cli_cnpj ?? null, remote.cli_ativo ? 1 : 0, 'synced', serverId];
+              const data = sanitize([remote.cli_nome ?? '', remote.cli_cnpj ?? null, remote.cli_ativo ? 1 : 0, 'synced', serverId]);
               if (existing) {
                 await db.runAsync(`UPDATE clientes SET nome = ?, cnpj = ?, ativo = ?, sync_status = ? WHERE server_id = ?`, data);
               } else {
                 await db.runAsync(`INSERT INTO clientes (nome, cnpj, ativo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
               }
             } else if (remoteTable === 'dia') {
-               const data = [remote.dia_data ? remote.dia_data.split('T')[0] : null, remote.dia_tipo ?? 'UTIL', remote.dia_horas_meta ?? 8, remote.dia_observacao ?? null, 'synced', serverId];
-               if (existing) {
-                 await db.runAsync(`UPDATE dias SET data = ?, tipo = ?, horas_meta = ?, observacao = ?, sync_status = ? WHERE server_id = ?`, data);
+               const data = sanitize([remote.dia_data ? remote.dia_data.split('T')[0] : null, remote.dia_tipo ?? 'UTIL', remote.dia_horas_meta ?? 8, remote.dia_observacao ?? null, 'synced', serverId]);
+               
+               let existingDia = existing;
+               if (!existingDia) {
+                 existingDia = await db.getFirstAsync<any>('SELECT id FROM dias WHERE data = ?', [data[0]]);
+               }
+
+               if (existingDia) {
+                 await db.runAsync(`UPDATE dias SET data = ?, tipo = ?, horas_meta = ?, observacao = ?, sync_status = ?, server_id = ? WHERE id = ?`, sanitize([...data, existingDia.id]));
                } else {
-                 await db.runAsync(`INSERT INTO dias (data, tipo, horas_meta, observacao, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
+                 await db.runAsync(`INSERT INTO dias (data, tipo, horas_meta, observacao, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
                }
             } else if (remoteTable === 'intervalo') {
               const localDia = await db.getFirstAsync<any>('SELECT id FROM dias WHERE server_id = ?', [remote.int_dia_id ?? null]);
               const localCli = await db.getFirstAsync<any>('SELECT id FROM clientes WHERE server_id = ?', [remote.int_cli_id ?? null]);
 
               if (localDia && localCli) {
-                const data = [localDia.id, localCli.id, remote.int_ordem ?? 1, remote.int_inicio ?? null, remote.int_fim ?? null, remote.int_anotacoes ?? null, remote.int_valor_hora ?? null, remote.int_valor_total ?? null, 'synced', serverId];
+                const data = sanitize([localDia.id, localCli.id, remote.int_ordem ?? 1, remote.int_inicio ?? null, remote.int_fim ?? null, remote.int_anotacoes ?? null, remote.int_valor_hora ?? null, remote.int_valor_total ?? null, 'synced', serverId]);
                 if (existing) {
                   await db.runAsync(`UPDATE intervalos SET dia_id = ?, cliente_id = ?, ordem = ?, inicio = ?, fim = ?, anotacoes = ?, valor_hora = ?, valor_total = ?, sync_status = ? WHERE server_id = ?`, data);
                 } else {
-                  await db.runAsync(`INSERT INTO intervalos (dia_id, cliente_id, ordem, inicio, fim, anotacoes, valor_hora, valor_total, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
+                  await db.runAsync(`INSERT INTO intervalos (dia_id, cliente_id, ordem, inicio, fim, anotacoes, valor_hora, valor_total, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
                 }
               }
             } else if (remoteTable === 'mes') {
-              const data = [remote.mes_ano_mes ?? null, remote.mes_valor_hora ?? null, remote.mes_horas_meta ?? 0, remote.mes_horas_dia ?? 8, remote.mes_dias_uteis ?? 0, remote.mes_estimativa ?? 0, remote.mes_realizado ?? 0, 'synced', serverId];
+              const data = sanitize([remote.mes_ano_mes ?? null, remote.mes_valor_hora ?? null, remote.mes_horas_meta ?? 0, remote.mes_horas_dia ?? 8, remote.mes_dias_uteis ?? 0, remote.mes_estimativa ?? 0, remote.mes_realizado ?? 0, 'synced', serverId]);
               if (existing) {
                 await db.runAsync(`UPDATE meses SET ano_mes = ?, valor_hora = ?, horas_meta = ?, horas_dia = ?, dias_uteis = ?, estimativa = ?, realizado = ?, sync_status = ? WHERE server_id = ?`, data);
               } else {
-                await db.runAsync(`INSERT INTO meses (ano_mes, valor_hora, horas_meta, horas_dia, dias_uteis, estimativa, realizado, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
+                await db.runAsync(`INSERT INTO meses (ano_mes, valor_hora, horas_meta, horas_dia, dias_uteis, estimativa, realizado, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
               }
             } else if (remoteTable === 'feriado') {
-              const data = [remote.fer_data ? remote.fer_data.split('T')[0] : null, remote.fer_nome ?? '', remote.fer_tipo ?? null, 'synced', serverId];
+              const data = sanitize([remote.fer_data ? remote.fer_data.split('T')[0] : null, remote.fer_nome ?? '', remote.fer_tipo ?? null, 'synced', serverId]);
               if (existing) {
                 await db.runAsync(`UPDATE feriados SET data = ?, nome = ?, tipo = ?, sync_status = ? WHERE server_id = ?`, data);
               } else {
-                await db.runAsync(`INSERT INTO feriados (data, nome, tipo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
+                await db.runAsync(`INSERT INTO feriados (data, nome, tipo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
               }
             }
           } catch (e: any) {
-            throw new Error(`Error in ${remoteTable}: ${e.message}`);
+            throw new Error(`Tabela ${remoteTable}: ${e.message}`);
           }
         }
       }
 
       await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
-      console.log(`[Sync] Successful at ${serverTime}`);
+      const summary = Object.entries(changes).map(([k, v]: [string, any]) => `${k}: ${v.length}`).join(', ');
+      await AsyncStorage.setItem('@PontoFacil:lastSyncSummary', summary);
+      console.log(`[Sync] Successful at ${serverTime}. Summary: ${summary}`);
       return true;
     } catch (e: any) {
       console.error('Sync failed:', e);

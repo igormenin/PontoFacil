@@ -6,18 +6,25 @@ import { ArrowLeft, Database, Share2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSync } from '../hooks/useSync';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function DatabaseDebugScreen() {
   const navigation = useNavigation();
   const [counts, setCounts] = useState<{table: string, count: number}[]>([]);
   const [loading, setLoading] = useState(true);
   const { performSync, syncing } = useSync();
+  const { user, token } = useAuthStore();
+  const [syncSummary, setSyncSummary] = useState<string>('');
 
   const loadCounts = async () => {
     try {
       setLoading(true);
+      const summary = await AsyncStorage.getItem('@PontoFacil:lastSyncSummary');
+      setSyncSummary(summary || 'Nenhum dado recebido ainda');
+      
       const db = await getDatabase();
       const tables = ['clientes', 'dias', 'intervalos', 'meses', 'feriados', 'valor_hora_historico', 'sync_queue'];
       const results = [];
@@ -54,18 +61,43 @@ export default function DatabaseDebugScreen() {
       if (success) {
         Alert.alert('Sucesso', 'Sincronização completa finalizada com sucesso!');
         loadCounts();
+        const updatedSummary = await AsyncStorage.getItem('@PontoFacil:lastSyncSummary');
+        setSyncSummary(updatedSummary || 'Sincronizado com sucesso');
       } else {
         Alert.alert('Erro', 'Ocorreu um erro durante a sincronização forçada.');
       }
     } catch (e: any) {
       Alert.alert('Erro fatal', e.message);
     }
+  const handleClearLocal = async () => {
+    Alert.alert(
+      'Atenção',
+      'Isso apagará TODOS os dados locais. O que não foi sincronizado será perdido. Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Apagar Tudo', style: 'destructive', onPress: async () => {
+            try {
+              const db = await getDatabase();
+              const tables = ['clientes', 'dias', 'intervalos', 'meses', 'feriados', 'sync_queue'];
+              for (const table of tables) {
+                await db.execAsync(`DELETE FROM ${table}`);
+              }
+              await AsyncStorage.removeItem('@PontoFacil:lastSyncAt');
+              await AsyncStorage.removeItem('@PontoFacil:lastSyncSummary');
+              Alert.alert('Sucesso', 'Banco local zerado.');
+              loadCounts();
+            } catch (err: any) {
+              Alert.alert('Erro', err.message);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleExportDB = async () => {
     try {
-      const docDir = (FileSystem as any).documentDirectory;
-      const dbPath = `${docDir}SQLite/pontofacil.db`;
+      const dbPath = `${FileSystem.documentDirectory}SQLite/pontofacil.db`;
       const fileInfo = await FileSystem.getInfoAsync(dbPath);
       
       if (!fileInfo.exists) {
@@ -122,6 +154,22 @@ export default function DatabaseDebugScreen() {
           ))}
           </>
         )}
+
+        <View style={{ marginTop: 24, padding: 16, backgroundColor: '#F4EBF6', borderRadius: 12 }}>
+          <Text style={{ fontWeight: 'bold', color: '#631660', marginBottom: 8 }}>Diagnóstico de Sessão</Text>
+          <Text style={{ fontSize: 13, color: '#50434D' }}>Usuário: {user?.email || 'Não identificado'}</Text>
+          <Text style={{ fontSize: 13, color: '#50434D' }}>ID no Servidor: {user?.id || 'N/A'}</Text>
+          <Text style={{ fontSize: 11, color: '#50434D' }}>Token: {token ? `${token.substring(0, 15)}...` : 'N/A'}</Text>
+          <Text style={{ fontSize: 13, color: '#631660', marginTop: 8, fontWeight: '500' }}>Último Pull do Servidor:</Text>
+          <Text style={{ fontSize: 12, color: '#50434D' }}>{syncSummary}</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={{ marginTop: 16, padding: 12, borderLevel: 1, borderColor: '#BA1A1A', borderWidth: 1, borderRadius: 8, alignItems: 'center' }} 
+          onPress={handleClearLocal}
+        >
+          <Text style={{ color: '#BA1A1A', fontWeight: 'bold' }}>LIMPAR BANCO LOCAL (RECOMEÇAR)</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

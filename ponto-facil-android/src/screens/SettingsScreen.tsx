@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Dimensions, ScrollView } from 'react-native';
-import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff, Eye } from 'lucide-react-native';
+import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff, Eye, LogOut, User } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { useAuthStore } from '../store/useAuthStore';
 import { useSync } from '../hooks/useSync';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { theme } from '../theme/theme';
@@ -12,6 +14,18 @@ export default function SettingsScreen() {
   const { performSync, syncing, error } = useSync();
   const [lastSync, setLastSync] = useState<string | null>(null);
   const navigation = useNavigation<NavigationProp<any>>();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair',
+      'Deseja realmente sair da sua conta?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: async () => await logout() }
+      ]
+    );
+  };
 
   const loadLastSync = async () => {
     const value = await AsyncStorage.getItem(LAST_SYNC_KEY);
@@ -133,9 +147,35 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Conta</Text>
+          <View style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: '#F4EBF6' }]}>
+                <User size={20} color="#631660" />
+              </View>
+              <View>
+                <Text style={styles.menuItemText}>{user?.nome || user?.login || 'Usuário'}</Text>
+                <Text style={{ fontSize: 12, color: '#50434D' }}>{user?.email}</Text>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: '#FFDAD6' }]}>
+                <LogOut size={20} color="#BA1A1A" />
+              </View>
+              <Text style={[styles.menuItemText, { color: '#BA1A1A' }]}>Sair da Conta</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footer}>
           <Text style={styles.versionText}>PONTO FÁCIL ANDROID</Text>
-          <Text style={styles.versionNumber}>Versão 1.0.0 (Build 42)</Text>
+          <Text style={styles.versionNumber}>
+            Versão {Constants.expoConfig?.version} (Build {Constants.expoConfig?.android?.versionCode})
+          </Text>
         </View>
       </ScrollView>
     </View>

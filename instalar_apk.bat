@@ -19,12 +19,18 @@ echo Procurando dispositivos conectados...
 adb devices
 
 echo.
+echo Finalizando o aplicativo (se estiver aberto)...
+adb shell am force-stop com.pontofacil.app
+
+echo.
 echo Instalando o aplicativo...
 adb install -r "%APK_PATH%"
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo [SUCESSO] Aplicativo instalado com sucesso no seu smartphone!
+    echo Abrindo o aplicativo...
+    adb shell am start -n com.pontofacil.app/com.pontofacil.app.MainActivity
 ) else (
     echo.
     echo [ERRO] Falha ao instalar o aplicativo. Verifique se:
