@@ -14,6 +14,7 @@ import ReportsScreen from '../screens/ReportsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import FeriadosScreen from '../screens/FeriadosScreen';
 import ValorHoraScreen from '../screens/ValorHoraScreen';
+import DatabaseDebugScreen from '../screens/DatabaseDebugScreen';
 import { useAuthStore } from '../store/useAuthStore';
 
 const Tab = createBottomTabNavigator();
@@ -95,6 +96,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Reports" component={ReportsScreen} />
             <Stack.Screen name="Feriados" component={FeriadosScreen} />
             <Stack.Screen name="ValorHora" component={ValorHoraScreen} />
+            <Stack.Screen name="DatabaseDebug" component={DatabaseDebugScreen} />
           </>
         )}
       </Stack.Navigator>

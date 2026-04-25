@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Dimensions, ScrollView } from 'react-native';
-import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff } from 'lucide-react-native';
+import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff, Eye } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSync } from '../hooks/useSync';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -66,14 +66,23 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity 
-              style={[styles.syncButton, syncing && styles.syncButtonDisabled]} 
-              onPress={handleSync}
-              disabled={syncing}
-            >
-              <RefreshCw size={18} color="#FFF" style={syncing ? { transform: [{ rotate: '45deg' }] } : {}} />
-              <Text style={styles.syncButtonText}>{syncing ? 'Processando...' : 'Sincronizar Agora'}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                style={[styles.syncButton, { flex: 1 }, syncing && styles.syncButtonDisabled]} 
+                onPress={handleSync}
+                disabled={syncing}
+              >
+                <RefreshCw size={18} color="#FFF" style={syncing ? { transform: [{ rotate: '45deg' }] } : {}} />
+                <Text style={styles.syncButtonText}>{syncing ? 'Processando...' : 'Sincronizar Agora'}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.syncButton, { width: 56, paddingVertical: 0 }]} 
+                onPress={() => navigation.navigate('DatabaseDebug')}
+              >
+                <Eye size={20} color="#FFF" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

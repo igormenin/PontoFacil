@@ -1,5 +1,5 @@
 # Script de Build Local - Ponto Fácil (Isolado)
-# Este script configura o ambiente apenas para esta sessão do terminal.
+# Este script configura o ambiente apenas para esta sessão do terminal e compila o app Android.
 
 # ==========================================================
 # --- AJUSTE OS CAMINHOS ABAIXO CONFORME SEU SISTEMA ---
@@ -41,12 +41,19 @@ eas --version
 
 # 4. Iniciar Build Nativo (Fluxo Windows)
 Write-Host "`n--- Iniciando Compilacao Nativa (Metodo Windows) ---" -ForegroundColor Magenta
+
+# Entrar no diretorio do mobile
+cd ponto-facil-android
+
 Write-Host "1. Gerando pastas nativas (prebuild)..."
 npx expo prebuild --platform android --no-install
 
 Write-Host "`n2. Compilando APK via Gradle..."
 cd android
 ./gradlew assembleRelease
+
+# Voltar para a pasta raiz
+cd ../..
 
 Write-Host "`n--- FIM ---" -ForegroundColor Green
 Write-Host "Se tudo deu certo, seu APK estara em: ponto-facil-android\android\app\build\outputs\apk\release\"
