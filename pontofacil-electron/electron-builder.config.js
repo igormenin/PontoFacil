@@ -22,6 +22,20 @@ const config = {
   extraMetadata: {
     main: 'electron/main.js'
   },
+  extraResources: [
+    {
+      from: "../backend",
+      to: "backend",
+      filter: [
+        "**/*",
+        "!node_modules/.cache/**/*",
+        "!logs/**/*",
+        "!local_data_dump*.sql",
+        "!*.log"
+      ]
+    }
+  ],
+
   // Icon: 256x256 PNG at build/icon.png
   win: {
     icon: 'build/icon.ico',

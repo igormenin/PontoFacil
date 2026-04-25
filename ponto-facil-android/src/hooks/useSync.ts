@@ -91,14 +91,14 @@ export function useSync() {
           );
 
           if (remoteTable === 'cliente') {
-            const data = [remote.cli_nome, remote.cli_cnpj, remote.cli_ativo ? 1 : 0, 'synced', serverId];
+            const data = [remote.cli_nome, remote.cli_cnpj ?? null, remote.cli_ativo ? 1 : 0, 'synced', serverId];
             if (existing) {
               await db.runAsync(`UPDATE clientes SET nome = ?, cnpj = ?, ativo = ?, sync_status = ? WHERE server_id = ?`, data);
             } else {
               await db.runAsync(`INSERT INTO clientes (nome, cnpj, ativo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
             }
           } else if (remoteTable === 'dia') {
-             const data = [remote.dia_data, remote.dia_tipo, remote.dia_horas_meta, remote.dia_observacao, 'synced', serverId];
+             const data = [remote.dia_data ? remote.dia_data.split('T')[0] : null, remote.dia_tipo, remote.dia_horas_meta ?? 8, remote.dia_observacao ?? null, 'synced', serverId];
              if (existing) {
                await db.runAsync(`UPDATE dias SET data = ?, tipo = ?, horas_meta = ?, observacao = ?, sync_status = ? WHERE server_id = ?`, data);
              } else {
@@ -111,7 +111,7 @@ export function useSync() {
             const localCli = await db.getFirstAsync<any>('SELECT id FROM clientes WHERE server_id = ?', [remote.int_cli_id]);
 
             if (localDia && localCli) {
-              const data = [localDia.id, localCli.id, remote.int_ordem, remote.int_inicio, remote.int_fim, remote.int_anotacoes, remote.int_valor_hora, remote.int_valor_total, 'synced', serverId];
+              const data = [localDia.id, localCli.id, remote.int_ordem, remote.int_inicio ?? null, remote.int_fim ?? null, remote.int_anotacoes ?? null, remote.int_valor_hora ?? null, remote.int_valor_total ?? null, 'synced', serverId];
               if (existing) {
                 await db.runAsync(`UPDATE intervalos SET dia_id = ?, cliente_id = ?, ordem = ?, inicio = ?, fim = ?, anotacoes = ?, valor_hora = ?, valor_total = ?, sync_status = ? WHERE server_id = ?`, data);
               } else {
@@ -119,14 +119,14 @@ export function useSync() {
               }
             }
           } else if (remoteTable === 'mes') {
-            const data = [remote.mes_ano_mes, remote.mes_valor_hora, remote.mes_horas_meta, remote.mes_horas_dia, remote.mes_dias_uteis, remote.mes_estimativa, remote.mes_realizado, 'synced', serverId];
+            const data = [remote.mes_ano_mes, remote.mes_valor_hora ?? null, remote.mes_horas_meta ?? 0, remote.mes_horas_dia ?? 8, remote.mes_dias_uteis ?? 0, remote.mes_estimativa ?? 0, remote.mes_realizado ?? 0, 'synced', serverId];
             if (existing) {
               await db.runAsync(`UPDATE meses SET ano_mes = ?, valor_hora = ?, horas_meta = ?, horas_dia = ?, dias_uteis = ?, estimativa = ?, realizado = ?, sync_status = ? WHERE server_id = ?`, data);
             } else {
               await db.runAsync(`INSERT INTO meses (ano_mes, valor_hora, horas_meta, horas_dia, dias_uteis, estimativa, realizado, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...data, Date.now()]);
             }
           } else if (remoteTable === 'feriado') {
-            const data = [remote.fer_data, remote.fer_nome, remote.fer_tipo, 'synced', serverId];
+            const data = [remote.fer_data ? remote.fer_data.split('T')[0] : null, remote.fer_nome, remote.fer_tipo ?? null, 'synced', serverId];
             if (existing) {
               await db.runAsync(`UPDATE feriados SET data = ?, nome = ?, tipo = ?, sync_status = ? WHERE server_id = ?`, data);
             } else {

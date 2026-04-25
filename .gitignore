@@ -58,3 +58,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+pontofacil-electron/release
+pontofacil-electron/dist
+ponto-facil-android/android
+ponto-facil-android/ios

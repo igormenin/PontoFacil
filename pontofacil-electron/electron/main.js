@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { fork } from 'child_process';
 import Store from 'electron-store';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -10,15 +11,37 @@ const __dirname = path.dirname(__filename);
 // Determine if running in production (packaged) or development
 const isDev = process.env.NODE_ENV === 'development';
 
+let backendProcess = null;
+
+function startBackend() {
+  const backendDir = isDev 
+    ? path.join(__dirname, '..', '..', 'backend')
+    : path.join(process.resourcesPath, 'backend');
+
+  const serverPath = path.join(backendDir, 'src', 'server.js');
+
+  console.log('Starting backend from:', serverPath);
+
+  backendProcess = fork(serverPath, [], {
+    cwd: backendDir,
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: isDev ? 'development' : 'production' }
+  });
+
+  backendProcess.on('error', (err) => {
+    console.error('Failed to start backend process:', err);
+  });
+}
+
 // Initialize electron-store
 const store = new Store();
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 1728,
+    height: 1000,
+    minWidth: 1728,
+    minHeight: 1000,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -84,6 +107,7 @@ ipcMain.handle('save-file', async (_event, { defaultName, content, filters }) =>
 });
 
 app.whenReady().then(() => {
+  startBackend();
   createWindow();
 
   app.on('activate', () => {
@@ -94,7 +118,11 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
+
