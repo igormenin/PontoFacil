@@ -69,6 +69,8 @@ export default function DatabaseDebugScreen() {
     } catch (e: any) {
       Alert.alert('Erro fatal', e.message);
     }
+  };
+
   const handleClearLocal = async () => {
     Alert.alert(
       'Atenção',
@@ -78,14 +80,23 @@ export default function DatabaseDebugScreen() {
         { text: 'Apagar Tudo', style: 'destructive', onPress: async () => {
             try {
               const db = await getDatabase();
-              const tables = ['clientes', 'dias', 'intervalos', 'meses', 'feriados', 'sync_queue'];
-              for (const table of tables) {
-                await db.execAsync(`DELETE FROM ${table}`);
-              }
-              await AsyncStorage.removeItem('@PontoFacil:lastSyncAt');
-              await AsyncStorage.removeItem('@PontoFacil:lastSyncSummary');
+              // Executa tudo em uma única chamada para ser mais atômico no Android
+              await db.execAsync(`
+                DELETE FROM intervalos;
+                DELETE FROM dias;
+                DELETE FROM clientes;
+                DELETE FROM meses;
+                DELETE FROM feriados;
+                DELETE FROM sync_queue;
+              `);
+              
+              await AsyncStorage.multiRemove([
+                '@PontoFacil:lastSyncAt',
+                '@PontoFacil:lastSyncSummary'
+              ]);
+
               Alert.alert('Sucesso', 'Banco local zerado.');
-              loadCounts();
+              await loadCounts();
             } catch (err: any) {
               Alert.alert('Erro', err.message);
             }
@@ -133,7 +144,7 @@ export default function DatabaseDebugScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 60 }]}>
         {loading || syncing ? (
           <Text style={styles.loading}>Carregando tabelas...</Text>
         ) : (
