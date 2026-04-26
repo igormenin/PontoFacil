@@ -67,9 +67,9 @@ export const syncService = {
             
             const updateRes = await client.query(
               `UPDATE ${table} SET ${setClause}, updated_at = NOW() 
-               WHERE device_id = $${columns.length + 1} AND local_id = $${columns.length + 2} AND usu_id = $${columns.length + 3}
+               WHERE device_id = $${columns.length + 1} AND local_id = $${columns.length + 2}
                RETURNING *`,
-              [...values.filter((_, i) => !['local_id', 'device_id', 'usu_id'].includes(columns[i])), deviceId, localId, userId]
+              [...values.filter((_, i) => !['local_id', 'device_id', 'usu_id'].includes(columns[i])), deviceId, localId]
             );
             finalRow = updateRes.rows[0];
           }
@@ -78,8 +78,8 @@ export const syncService = {
         } else if (operation === 'DELETE') {
           await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() 
-             WHERE (device_id = $1 AND local_id = $2 AND usu_id = $3) OR (${table.substring(0, 3)}_id = $4 AND usu_id = $3)`,
-            [deviceId, localId, userId, mutation.serverId]
+             WHERE (device_id = $1 AND local_id = $2) OR (${table.substring(0, 3)}_id = $3)`,
+            [deviceId, localId, mutation.serverId]
           );
           results.push({ localId, status: 'deleted' });
         }
@@ -105,9 +105,9 @@ export const syncService = {
     for (const table of tables) {
       const query = `
         SELECT * FROM ${table} 
-        WHERE usu_id = $1 AND updated_at > $2
+        WHERE updated_at > $1
       `;
-      const res = await pool.query(query, [userId, lastSyncAt || new Date(0)]);
+      const res = await pool.query(query, [lastSyncAt || new Date(0)]);
       changes[table] = res.rows;
     }
 

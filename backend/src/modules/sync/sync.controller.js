@@ -2,7 +2,7 @@ import { syncService } from './sync.service.js';
 import { logToDb } from '../../utils/log.service.js';
 
 export const push = async (req, res) => {
-  const userId = req.user.usu_id;
+  const userId = req.user.id;
   try {
     const { mutations } = req.body;
     const deviceId = req.headers['x-device-id'] || 'unknown';
@@ -24,7 +24,7 @@ export const push = async (req, res) => {
 };
 
 export const pull = async (req, res) => {
-  const userId = req.user.usu_id;
+  const userId = req.user.id;
   const { lastSyncAt } = req.query;
   try {
     await logToDb('SYNC_PULL_REQ', { userId, lastSyncAt });
