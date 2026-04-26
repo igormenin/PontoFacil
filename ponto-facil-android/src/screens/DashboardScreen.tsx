@@ -124,10 +124,14 @@ export default function DashboardScreen() {
         </View>
         
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Nenhum intervalo registrado hoje.</Text>
-          <TouchableOpacity style={styles.addButton} onPress={navigateToDay}>
-            <Text style={styles.addButtonText}>Registrar Agora</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyText}>
+            {user?.leitor ? 'Modo de visualização. Registros aparecem aqui conforme sincronizados.' : 'Nenhum intervalo registrado hoje.'}
+          </Text>
+          {!user?.leitor && (
+            <TouchableOpacity style={styles.addButton} onPress={navigateToDay}>
+              <Text style={styles.addButtonText}>Registrar Agora</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </ScrollView>

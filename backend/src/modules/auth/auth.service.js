@@ -22,7 +22,7 @@ export const login = async (login, senha) => {
   }
   
   const token = jwt.sign(
-    { id: user.usu_id, login: user.usu_login },
+    { id: user.usu_id, login: user.usu_login, cargo: user.usu_cargo, leitor: user.usu_leitor },
     env.JWT.SECRET,
     { expiresIn: env.JWT.EXPIRES_IN }
   );
@@ -36,6 +36,7 @@ export const login = async (login, senha) => {
       email: user.usu_email,
       avatar: user.usu_avatar,
       cargo: user.usu_cargo,
+      leitor: user.usu_leitor,
     },
   };
 };

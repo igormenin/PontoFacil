@@ -22,6 +22,8 @@ const Stack = createStackNavigator();
 
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
+  const isLeitor = user?.leitor === true;
 
   return (
     <Tab.Navigator
@@ -63,20 +65,24 @@ const MainTabs = () => {
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
       />
-      <Tab.Screen 
-        name="Clientes" 
-        component={ClientsScreen} 
-        options={{
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen 
-        name="Configuração" 
-        component={SettingsScreen} 
-        options={{
-          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
-        }}
-      />
+      {!isLeitor && (
+        <Tab.Screen 
+          name="Clientes" 
+          component={ClientsScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+          }}
+        />
+      )}
+      {!isLeitor && (
+        <Tab.Screen 
+          name="Configuração" 
+          component={SettingsScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 };

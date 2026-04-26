@@ -16,6 +16,9 @@ export default function DayScreen({ route, navigation }: any) {
   const { intervals, loading, addInterval, deleteInterval } = useIntervals(dayRecord?.id);
   const [modalVisible, setModalVisible] = useState(false);
 
+  const user = useAuthStore((state) => state.user);
+  const isLeitor = user?.leitor === true;
+
   const loadDay = useCallback(async () => {
     const record = await getOrCreateDay(date);
     setDayRecord(record);
@@ -62,9 +65,11 @@ export default function DayScreen({ route, navigation }: any) {
               <Text style={styles.timeRange}>{item.inicio} — {item.fim || 'Em aberto'}</Text>
             </View>
           </View>
-          <TouchableOpacity onPress={() => deleteInterval(item.id)} style={styles.deleteButton}>
-            <Trash2 size={18} color={theme.colors.error} />
-          </TouchableOpacity>
+          {!isLeitor && (
+            <TouchableOpacity onPress={() => deleteInterval(item.id)} style={styles.deleteButton}>
+              <Trash2 size={18} color={theme.colors.error} />
+            </TouchableOpacity>
+          )}
         </View>
         
         {item.anotacoes ? (
@@ -119,21 +124,27 @@ export default function DayScreen({ route, navigation }: any) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Sua linha do tempo está limpa. Comece seu dia aqui.</Text>
-              <TouchableOpacity style={styles.emptyAction} onPress={() => setModalVisible(true)}>
-                <Text style={styles.emptyActionText}>Registrar Ponto</Text>
-              </TouchableOpacity>
+              <Text style={styles.emptyText}>
+                {isLeitor ? 'Nenhum registro para este dia.' : 'Sua linha do tempo está limpa. Comece seu dia aqui.'}
+              </Text>
+              {!isLeitor && (
+                <TouchableOpacity style={styles.emptyAction} onPress={() => setModalVisible(true)}>
+                  <Text style={styles.emptyActionText}>Registrar Ponto</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
       )}
 
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <Plus color="#FFF" size={32} />
-      </TouchableOpacity>
+      {!isLeitor && (
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => setModalVisible(true)}
+        >
+          <Plus color="#FFF" size={32} />
+        </TouchableOpacity>
+      )}
 
       <Modal
         animationType="slide"
