@@ -74,15 +74,13 @@ const MainTabs = () => {
           }}
         />
       )}
-      {!isLeitor && (
-        <Tab.Screen 
-          name="Configuração" 
-          component={SettingsScreen} 
-          options={{
-            tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
-          }}
-        />
-      )}
+      <Tab.Screen 
+        name="Configuração" 
+        component={SettingsScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
+        }}
+      />
     </Tab.Navigator>
   );
 };

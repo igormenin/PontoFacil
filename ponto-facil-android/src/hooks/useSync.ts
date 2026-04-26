@@ -2,12 +2,15 @@ import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDatabase } from '../database/db';
 import { pushSync, pullSync } from '../api/syncApi';
+import { useAuthStore } from '../store/useAuthStore';
 
 const LAST_SYNC_KEY = '@PontoFacil:lastSyncAt';
 
 export function useSync() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const isLeitor = user?.leitor === true;
 
   const performSync = useCallback(async () => {
     setSyncing(true);
@@ -15,43 +18,49 @@ export function useSync() {
     const db = await getDatabase();
 
     try {
-      // 1. PUSH PHASE
-      // Fetch all unique table names in queue
-      const tablesInQueue = await db.getAllAsync<{ table_name: string }>('SELECT DISTINCT table_name FROM sync_queue');
-      
-      for (const { table_name } of tablesInQueue) {
-        const pendingMutations = await db.getAllAsync<any>(
-          'SELECT * FROM sync_queue WHERE table_name = ? ORDER BY created_at ASC',
-          [table_name]
-        );
+      // 1. PUSH PHASE - Skip if reader
+      if (!isLeitor) {
+        try {
+          // Fetch all unique table names in queue
+          const tablesInQueue = await db.getAllAsync<{ table_name: string }>('SELECT DISTINCT table_name FROM sync_queue');
+          
+          for (const { table_name } of tablesInQueue) {
+            const pendingMutations = await db.getAllAsync<any>(
+              'SELECT * FROM sync_queue WHERE table_name = ? ORDER BY created_at ASC',
+              [table_name]
+            );
 
-        if (pendingMutations.length > 0) {
-          const mutations = pendingMutations.map(m => ({
-            table: m.table_name,
-            operation: m.operation,
-            localId: m.local_id,
-            serverId: m.server_id,
-            payload: JSON.parse(m.payload || '{}')
-          }));
+            if (pendingMutations.length > 0) {
+              const mutations = pendingMutations.map(m => ({
+                table: m.table_name,
+                operation: m.operation,
+                localId: m.local_id,
+                serverId: m.server_id,
+                payload: JSON.parse(m.payload || '{}')
+              }));
 
-          const { results } = await pushSync(mutations);
+              const { results } = await pushSync(mutations);
 
-          for (const res of results) {
-            if (res.status === 'success' && res.serverId) {
-              const localTable = table_name === 'cliente' ? 'clientes' : 
-                                table_name === 'dia' ? 'dias' : 
-                                table_name === 'intervalo' ? 'intervalos' : table_name;
-              
-              await db.runAsync(
-                `UPDATE ${localTable} SET server_id = ?, sync_status = 'synced' WHERE id = ?`,
-                [res.serverId, res.localId]
-              );
-            }
-            const matchId = pendingMutations.find(m => m.local_id === res.localId)?.id;
-            if (matchId) {
-              await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [matchId]);
+              for (const res of results) {
+                if (res.status === 'success' && res.serverId) {
+                  const localTable = table_name === 'cliente' ? 'clientes' : 
+                                    table_name === 'dia' ? 'dias' : 
+                                    table_name === 'intervalo' ? 'intervalos' : table_name;
+                  
+                  await db.runAsync(
+                    `UPDATE ${localTable} SET server_id = ?, sync_status = 'synced' WHERE id = ?`,
+                    [res.serverId, res.localId]
+                  );
+                }
+                const matchId = pendingMutations.find(m => m.local_id === res.localId)?.id;
+                if (matchId) {
+                  await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [matchId]);
+                }
+              }
             }
           }
+        } catch (pushErr) {
+          console.warn('[Sync] Push failed, but proceeding to pull:', pushErr);
         }
       }
 
