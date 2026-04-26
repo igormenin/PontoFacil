@@ -6,6 +6,7 @@ import { useDays, DayRecord } from '../hooks/useDays';
 import IntervalForm from '../components/IntervalForm';
 import { calculateDuration } from '../utils/calcHoras';
 import { theme } from '../theme/theme';
+import { useAuthStore } from '../store/useAuthStore';
 
 const { width } = Dimensions.get('window');
 

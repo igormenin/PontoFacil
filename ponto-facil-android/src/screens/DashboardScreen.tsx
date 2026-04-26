@@ -118,8 +118,8 @@ export default function DashboardScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Últimos Intervalos</Text>
-          <TouchableOpacity onPress={navigateToDay}>
-            <Text style={styles.seeAll}>Timeline</Text>
+          <TouchableOpacity onPress={navigateToCalendar}>
+            <Text style={styles.seeAll}>Calendário</Text>
           </TouchableOpacity>
         </View>
         
