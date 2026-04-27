@@ -14,6 +14,9 @@ if not exist "%APK_PATH%" (
     exit /b 1
 )
 
+echo [INFO] Copiando APK para a área de transferência...
+powershell -NoProfile -Command "Set-Clipboard -Path '%APK_PATH%'"
+
 echo.
 echo Procurando dispositivos conectados...
 adb devices

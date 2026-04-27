@@ -43,20 +43,48 @@ eas --version
 Write-Host "`n--- Iniciando Compilacao Nativa (Metodo Windows) ---" -ForegroundColor Magenta
 
 # Entrar no diretorio do mobile
-cd ponto-facil-android
+if (Test-Path "ponto-facil-android") {
+    cd ponto-facil-android
+} else {
+    Write-Host "[ERRO] Pasta ponto-facil-android nao encontrada!" -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "0. Incrementando versao de build (versionCode) no app.json..." -ForegroundColor Cyan
 node -e "const fs=require('fs'); const file='./app.json'; const app=JSON.parse(fs.readFileSync(file)); app.expo.android = app.expo.android || {}; app.expo.android.versionCode = (app.expo.android.versionCode || 1) + 1; if(app.expo.version){ let p=app.expo.version.split('.'); p[2]=(parseInt(p[2]||0)+1).toString(); app.expo.version=p.join('.'); } else { app.expo.version='1.0.1'; } fs.writeFileSync(file, JSON.stringify(app, null, 2)); console.log('Nova versao: ' + app.expo.version + ' (Code: ' + app.expo.android.versionCode + ')');"
 
-Write-Host "`n1. Gerando pastas nativas (prebuild)..."
+Write-Host "`n1. Limpando e Gerando pastas nativas (prebuild)..." -ForegroundColor Cyan
+if (Test-Path "android") {
+    Write-Host "Removendo pasta 'android' antiga para evitar recursos duplicados..." -ForegroundColor Yellow
+    Remove-Item -Path "android" -Recurse -Force
+}
 npx expo prebuild --platform android --no-install
 
-Write-Host "`n2. Compilando APK via Gradle..."
-cd android
-./gradlew assembleRelease
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERRO] Falha no prebuild do Expo." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "`n2. Compilando APK via Gradle..." -ForegroundColor Cyan
+if (Test-Path "android") {
+    cd android
+    # Usar cmd /c para garantir que o gradlew rode corretamente no Windows
+    cmd /c ".\gradlew assembleRelease"
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERRO] Falha na compilacao do Gradle." -ForegroundColor Red
+        cd ../..
+        exit 1
+    }
+    cd ..
+} else {
+    Write-Host "[ERRO] Pasta 'android' nao encontrada apos prebuild!" -ForegroundColor Red
+    cd ..
+    exit 1
+}
 
 # Voltar para a pasta raiz
-cd ../..
+cd ..
 
 Write-Host "`n--- FIM ---" -ForegroundColor Green
 Write-Host "Se tudo deu certo, seu APK estara em: ponto-facil-android\android\app\build\outputs\apk\release\"
