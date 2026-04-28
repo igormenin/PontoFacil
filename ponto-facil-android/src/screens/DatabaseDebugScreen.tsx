@@ -13,7 +13,7 @@ import { useAuthStore } from '../store/useAuthStore';
 
 export default function DatabaseDebugScreen() {
   const navigation = useNavigation();
-  const [counts, setCounts] = useState<{table: string, count: number}[]>([]);
+  const [counts, setCounts] = useState<{table: string, count: number, error?: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const { performSync, syncing } = useSync();
   const { user, token } = useAuthStore();
@@ -33,13 +33,15 @@ export default function DatabaseDebugScreen() {
         try {
           const result = await db.getFirstAsync<any>(`SELECT COUNT(*) as total FROM ${table}`);
           results.push({ table, count: result?.total || 0 });
-        } catch (err) {
-          results.push({ table, count: -1 });
+        } catch (err: any) {
+          console.error(`Error querying ${table}:`, err);
+          results.push({ table, count: -1, error: err.message });
         }
       }
       setCounts(results);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setSyncSummary(`ERRO FATAL: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -159,7 +161,11 @@ export default function DatabaseDebugScreen() {
               </View>
               <View style={styles.info}>
                 <Text style={styles.tableName}>{item.table}</Text>
-                <Text style={styles.countText}>{item.count} registro(s)</Text>
+                {item.count === -1 ? (
+                  <Text style={[styles.countText, { color: 'red', fontSize: 10 }]}>{item.error || 'Erro ao consultar'}</Text>
+                ) : (
+                  <Text style={styles.countText}>{item.count} registro(s)</Text>
+                )}
               </View>
             </View>
           ))}
@@ -176,7 +182,7 @@ export default function DatabaseDebugScreen() {
         </View>
 
         <TouchableOpacity 
-          style={{ marginTop: 16, padding: 12, borderLevel: 1, borderColor: '#BA1A1A', borderWidth: 1, borderRadius: 8, alignItems: 'center' }} 
+          style={{ marginTop: 16, padding: 12, borderColor: '#BA1A1A', borderWidth: 1, borderRadius: 8, alignItems: 'center' }} 
           onPress={handleClearLocal}
         >
           <Text style={{ color: '#BA1A1A', fontWeight: 'bold' }}>LIMPAR BANCO LOCAL (RECOMEÇAR)</Text>

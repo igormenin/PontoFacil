@@ -31,24 +31,9 @@ export const syncService = {
           values.push(userId, deviceId, localId, new Date());
 
           const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-          const updateAssigns = columns
-            .filter(c => !['local_id', 'device_id', 'usu_id'].includes(c))
-            .map((c, i) => `${c} = excluded.${c}`)
-            .join(', ');
-
-          const query = `
-            INSERT INTO ${table} (${columns.join(', ')})
-            VALUES (${placeholders})
-            ON CONFLICT (device_id, local_id, usu_id) 
-            -- Note: We need a unique constraint for this to work. 
-            -- I'll use a manual check for now or assume UPSERT pattern if constraint exists.
-            -- Actually, for simplicity and idempotency without complex constraints:
-            DO UPDATE SET ${updateAssigns}
-            RETURNING *;
-          `;
-
-          // Check if constraint exists, if not, use a different strategy
-          // For this MVP, I'll use the UPSERT pattern.
+          
+          // With the unique constraint (usu_id, device_id, local_id) in place, 
+          // we can safely use ON CONFLICT to avoid duplicate rows for retries.
           const res = await client.query(
             `INSERT INTO ${table} (${columns.join(', ')}) 
              VALUES (${placeholders}) 
@@ -67,19 +52,26 @@ export const syncService = {
             
             const updateRes = await client.query(
               `UPDATE ${table} SET ${setClause}, updated_at = NOW() 
-               WHERE device_id = $${columns.length + 1} AND local_id = $${columns.length + 2}
+               WHERE usu_id = $${columns.length + 1} AND device_id = $${columns.length + 2} AND local_id = $${columns.length + 3}
                RETURNING *`,
-              [...values.filter((_, i) => !['local_id', 'device_id', 'usu_id'].includes(columns[i])), deviceId, localId]
+              [...values.filter((_, i) => !['local_id', 'device_id', 'usu_id'].includes(columns[i])), userId, deviceId, localId]
             );
             finalRow = updateRes.rows[0];
           }
 
-          results.push({ localId, serverId: finalRow[`${table.substring(0, 3)}_id`], status: 'success' });
+          if (finalRow) {
+            results.push({ localId, serverId: finalRow[`${table.substring(0, 3)}_id`], status: 'success' });
+          } else {
+            // This happens if the unique constraint hit was on a DIFFERENT constraint (e.g. dia_data)
+            // It means this device tried to insert a day that already exists from another device/user.
+            // For now, mark as error so the client knows it failed.
+            results.push({ localId, status: 'error', message: 'Conflict with existing unique record' });
+          }
         } else if (operation === 'DELETE') {
           await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() 
-             WHERE (device_id = $1 AND local_id = $2) OR (${table.substring(0, 3)}_id = $3)`,
-            [deviceId, localId, mutation.serverId]
+             WHERE usu_id = $1 AND ((device_id = $2 AND local_id = $3) OR (${table.substring(0, 3)}_id = $4))`,
+            [userId, deviceId, localId, mutation.serverId]
           );
           results.push({ localId, status: 'deleted' });
         }
@@ -98,22 +90,77 @@ export const syncService = {
   /**
    * Fetches changes from the server for the user.
    */
-  async pull(userId, lastSyncAt) {
-    const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado'];
-    const changes = {};
-
-    for (const table of tables) {
-      const query = `
-        SELECT * FROM ${table} 
-        WHERE updated_at > $1
-      `;
-      const res = await pool.query(query, [lastSyncAt || new Date(0)]);
-      changes[table] = res.rows;
+  async pull(userId, deviceId) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      let syncControl = await client.query(
+        `SELECT dis_ultima_sincronizacao, dis_max_ids FROM dispositivo_sincronizacao 
+         WHERE usu_id = $1 AND dis_device_id = $2 FOR UPDATE`,
+        [userId, deviceId]
+      );
+      
+      let lastSyncAt = new Date(0);
+      let maxIds = {};
+      
+      if (syncControl.rows.length === 0) {
+        await client.query(
+          `INSERT INTO dispositivo_sincronizacao (usu_id, dis_device_id, dis_ultima_sincronizacao, dis_max_ids)
+           VALUES ($1, $2, $3, $4)`,
+          [userId, deviceId, lastSyncAt, JSON.stringify(maxIds)]
+        );
+      } else {
+        lastSyncAt = syncControl.rows[0].dis_ultima_sincronizacao;
+        maxIds = syncControl.rows[0].dis_max_ids || {};
+      }
+      
+      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado'];
+      const changes = {};
+      const newMaxIds = { ...maxIds };
+      const currentSyncTime = new Date();
+      
+      for (const table of tables) {
+        const pk = `${table.substring(0, 3)}_id`;
+        const lastMaxId = maxIds[table] || 0;
+        
+        const query = `
+          SELECT * FROM ${table} 
+          WHERE usu_id = $1 AND (
+            ${pk} > $2 OR 
+            updated_at > $3
+          )
+          ORDER BY ${pk} ASC
+        `;
+        const res = await client.query(query, [userId, lastMaxId, lastSyncAt]);
+        changes[table] = res.rows;
+        
+        if (res.rows.length > 0) {
+          const tableMaxId = Math.max(...res.rows.map(r => r[pk]));
+          if (tableMaxId > lastMaxId) {
+            newMaxIds[table] = tableMaxId;
+          }
+        }
+      }
+      
+      await client.query(
+        `UPDATE dispositivo_sincronizacao 
+         SET dis_ultima_sincronizacao = $1, dis_max_ids = $2 
+         WHERE usu_id = $3 AND dis_device_id = $4`,
+        [currentSyncTime, JSON.stringify(newMaxIds), userId, deviceId]
+      );
+      
+      await client.query('COMMIT');
+      
+      return {
+        changes,
+        serverTime: currentSyncTime
+      };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
-
-    return {
-      changes,
-      serverTime: new Date()
-    };
   }
 };

@@ -33,10 +33,8 @@ export const pushSync = async (mutations: any[]) => {
   return response.data;
 };
 
-export const pullSync = async (lastSyncAt: string | null) => {
-  const response = await syncApi.get('/sync/pull', {
-    params: { lastSyncAt }
-  });
+export const pullSync = async () => {
+  const response = await syncApi.get('/sync/pull');
   return response.data;
 };
 

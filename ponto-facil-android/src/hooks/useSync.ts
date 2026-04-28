@@ -31,13 +31,22 @@ export function useSync() {
             );
 
             if (pendingMutations.length > 0) {
-              const mutations = pendingMutations.map(m => ({
-                table: m.table_name,
-                operation: m.operation,
-                localId: m.local_id,
-                serverId: m.server_id,
-                payload: JSON.parse(m.payload || '{}')
-              }));
+              const mutations = pendingMutations.map(m => {
+                let singularTable = m.table_name;
+                if (singularTable === 'clientes') singularTable = 'cliente';
+                else if (singularTable === 'dias') singularTable = 'dia';
+                else if (singularTable === 'intervalos') singularTable = 'intervalo';
+                else if (singularTable === 'meses') singularTable = 'mes';
+                else if (singularTable === 'feriados') singularTable = 'feriado';
+                
+                return {
+                  table: singularTable,
+                  operation: m.operation,
+                  localId: m.local_id,
+                  serverId: m.server_id,
+                  payload: JSON.parse(m.payload || '{}')
+                };
+              });
 
               const { results } = await pushSync(mutations);
 
@@ -65,14 +74,9 @@ export function useSync() {
       }
 
       // 2. PULL PHASE
-      let lastSyncAt = await AsyncStorage.getItem(LAST_SYNC_KEY);
-      if (!lastSyncAt || lastSyncAt === 'null') {
-        lastSyncAt = null;
-      }
+      console.log(`[Sync] Pulling started.`);
       
-      console.log(`[Sync] Pulling started. LastSyncAt: ${lastSyncAt}`);
-      
-      const { changes, serverTime } = await pullSync(lastSyncAt);
+      const { changes, serverTime } = await pullSync();
       console.log(`[Sync] Data received. ServerTime: ${serverTime}. Entities: ${Object.keys(changes || {}).join(', ')}`);
 
       // Reconcile each table

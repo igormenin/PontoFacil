@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, AppState } from 'react-native';
 import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';
@@ -36,10 +36,27 @@ export default function DashboardScreen() {
   const [dayId, setDayId] = React.useState<number | undefined>();
   const { intervals } = useIntervals(dayId);
 
-  useEffect(() => {
+  const loadDashboardData = React.useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     getOrCreateDay(today).then(day => setDayId(day.id)).catch(console.error);
-  }, [getOrCreateDay]);
+    refresh(); // Refresh months data
+  }, [getOrCreateDay, refresh]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        loadDashboardData();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [loadDashboardData]);
 
   const totalHorasHjObj = intervals.reduce((acc, curr) => {
     return curr.fim ? acc + calculateDuration(curr.inicio, curr.fim) : acc;

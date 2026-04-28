@@ -15,9 +15,8 @@ const config = {
   files: [
     'dist/**/*',
     'electron/**/*',
-    'node_modules/electron-store/**/*',
-    // Exclude dev-only files
-    '!node_modules/.cache/**/*'
+    '!node_modules/.cache/**/*',
+    '!**/*.log'
   ],
   extraMetadata: {
     main: 'electron/main.js'

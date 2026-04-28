@@ -26,11 +26,12 @@ export const push = async (req, res) => {
 export const pull = async (req, res) => {
   const userId = req.user.id;
   const isLeitor = req.user.leitor;
-  const { lastSyncAt } = req.query;
-  try {
-    await logToDb('SYNC_PULL_REQ', { userId, isLeitor, lastSyncAt });
+  const deviceId = req.headers['x-device-id'] || 'unknown';
 
-    const data = await syncService.pull(userId, lastSyncAt);
+  try {
+    await logToDb('SYNC_PULL_REQ', { userId, isLeitor, deviceId });
+
+    const data = await syncService.pull(userId, deviceId);
     await logToDb('SYNC_PULL_RES', { userId, changes: Object.keys(data.changes).map(k => `${k}: ${data.changes[k].length}`) });
     
     res.status(200).json(data);
