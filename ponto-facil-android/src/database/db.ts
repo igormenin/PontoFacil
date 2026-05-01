@@ -3,9 +3,19 @@ import { SQL_SCHEMA } from './schema';
 
 const DATABASE_NAME = 'pontofacil.db';
 
+let dbInstance: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+
 export const getDatabase = async () => {
-  const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
-  return db;
+  if (dbInstance) return dbInstance;
+  if (dbPromise) return dbPromise;
+  
+  dbPromise = SQLite.openDatabaseAsync(DATABASE_NAME).then(db => {
+    dbInstance = db;
+    return db;
+  });
+  
+  return dbPromise;
 };
 
 export const initializeDatabase = async () => {
