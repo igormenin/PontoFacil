@@ -129,11 +129,12 @@ export const syncService = {
         const pk = `${table.substring(0, 3)}_id`;
         const lastMaxId = maxIds[table] || 0;
         
+        const params = isLeitor ? [lastMaxId, lastSyncAt] : [userId, lastMaxId, lastSyncAt];
         const query = isLeitor ? `
           SELECT * FROM ${table} 
           WHERE (
-            ${pk} > $2 OR 
-            updated_at > $3
+            ${pk} > $1 OR 
+            updated_at > $2
           )
           ORDER BY ${pk} ASC
         ` : `
@@ -144,7 +145,7 @@ export const syncService = {
           )
           ORDER BY ${pk} ASC
         `;
-        const res = await client.query(query, [userId, lastMaxId, lastSyncAt]);
+        const res = await client.query(query, params);
         changes[table] = res.rows;
         
         if (res.rows.length > 0) {
