@@ -12,7 +12,7 @@ export function useSync() {
   const user = useAuthStore((state) => state.user);
   const isLeitor = user?.leitor === true;
 
-  const performSync = useCallback(async () => {
+  const performSync = useCallback(async (forceFullSync: boolean = false) => {
     setSyncing(true);
     setError(null);
     const db = await getDatabase();
@@ -76,7 +76,7 @@ export function useSync() {
       // 2. PULL PHASE
       console.log(`[Sync] Pulling started.`);
       
-      const { changes, serverTime } = await pullSync();
+      const { changes, serverTime } = await pullSync(forceFullSync);
       console.log(`[Sync] Data received. ServerTime: ${serverTime}. Entities: ${Object.keys(changes || {}).join(', ')}`);
 
       // Reconcile each table

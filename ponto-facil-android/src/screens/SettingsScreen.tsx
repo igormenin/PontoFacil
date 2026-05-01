@@ -90,14 +90,12 @@ export default function SettingsScreen() {
                 <Text style={styles.syncButtonText}>{syncing ? 'Processando...' : 'Sincronizar Agora'}</Text>
               </TouchableOpacity>
               
-              {!user?.leitor && (
-                <TouchableOpacity 
-                  style={[styles.syncButton, { width: 56, paddingVertical: 0 }]} 
-                  onPress={() => navigation.navigate('DatabaseDebug')}
-                >
-                  <Eye size={20} color="#FFF" />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity 
+                style={[styles.syncButton, { width: 56, paddingVertical: 0 }]} 
+                onPress={() => navigation.navigate('DatabaseDebug')}
+              >
+                <Eye size={20} color="#FFF" />
+              </TouchableOpacity>
             </View>
           </View>
         </View>

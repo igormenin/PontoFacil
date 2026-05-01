@@ -59,7 +59,7 @@ export default function DatabaseDebugScreen() {
       // Reset last sync time
       await AsyncStorage.removeItem('@PontoFacil:lastSyncAt');
       
-      const success = await performSync();
+      const success = await performSync(true);
       if (success) {
         Alert.alert('Sucesso', 'Sincronização completa finalizada com sucesso!');
         loadCounts();

@@ -90,7 +90,7 @@ export const syncService = {
   /**
    * Fetches changes from the server for the user.
    */
-  async pull(userId, deviceId) {
+  async pull(userId, deviceId, isLeitor = false, force = false) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -114,6 +114,11 @@ export const syncService = {
         lastSyncAt = syncControl.rows[0].dis_ultima_sincronizacao;
         maxIds = syncControl.rows[0].dis_max_ids || {};
       }
+
+      if (force) {
+        lastSyncAt = new Date(0);
+        maxIds = {};
+      }
       
       const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado'];
       const changes = {};
@@ -124,7 +129,14 @@ export const syncService = {
         const pk = `${table.substring(0, 3)}_id`;
         const lastMaxId = maxIds[table] || 0;
         
-        const query = `
+        const query = isLeitor ? `
+          SELECT * FROM ${table} 
+          WHERE (
+            ${pk} > $2 OR 
+            updated_at > $3
+          )
+          ORDER BY ${pk} ASC
+        ` : `
           SELECT * FROM ${table} 
           WHERE usu_id = $1 AND (
             ${pk} > $2 OR 

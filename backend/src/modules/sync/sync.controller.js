@@ -27,11 +27,12 @@ export const pull = async (req, res) => {
   const userId = req.user.id;
   const isLeitor = req.user.leitor;
   const deviceId = req.headers['x-device-id'] || 'unknown';
+  const force = req.query.force === 'true';
 
   try {
-    await logToDb('SYNC_PULL_REQ', { userId, isLeitor, deviceId });
+    await logToDb('SYNC_PULL_REQ', { userId, isLeitor, deviceId, force });
 
-    const data = await syncService.pull(userId, deviceId);
+    const data = await syncService.pull(userId, deviceId, isLeitor, force);
     await logToDb('SYNC_PULL_RES', { userId, changes: Object.keys(data.changes).map(k => `${k}: ${data.changes[k].length}`) });
     
     res.status(200).json(data);
