@@ -55,6 +55,9 @@ node -e "const fs=require('fs'); const file='./app.json'; const app=JSON.parse(f
 
 Write-Host "`n1. Limpando e Gerando pastas nativas (prebuild)..." -ForegroundColor Cyan
 if (Test-Path "android") {
+    Write-Host "Encerrando processos Java/Gradle para liberar arquivos..." -ForegroundColor Yellow
+    taskkill /F /IM java.exe 2>$null
+    Start-Sleep -Seconds 2
     Write-Host "Removendo pasta 'android' antiga para evitar recursos duplicados..." -ForegroundColor Yellow
     Remove-Item -Path "android" -Recurse -Force
 }

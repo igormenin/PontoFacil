@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, AppState } from 'react-native';
 import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSync } from '../hooks/useSync';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDays } from '../hooks/useDays';
@@ -13,7 +13,7 @@ import { theme } from '../theme/theme';
 const { width } = Dimensions.get('window');
 
 const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPress }: any) => (
-  <TouchableOpacity 
+  <TouchableOpacity
     style={[styles.card, { backgroundColor }]}
     onPress={onPress}
   >
@@ -29,22 +29,27 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
 
 export default function DashboardScreen() {
   const navigation = useNavigation<any>();
-  const { summary, refresh } = useMonths();
+  const { summary, refresh: refreshMonths } = useMonths();
   const { performSync, syncing } = useSync();
   const user = useAuthStore((state) => state.user);
   const { getOrCreateDay } = useDays();
   const [dayId, setDayId] = React.useState<number | undefined>();
-  const { intervals } = useIntervals(dayId);
+  const { intervals, refresh: refreshIntervals } = useIntervals(dayId);
 
   const loadDashboardData = React.useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
-    getOrCreateDay(today).then(day => setDayId(day.id)).catch(console.error);
-    refresh(); // Refresh months data
-  }, [getOrCreateDay, refresh]);
+    getOrCreateDay(today).then(day => {
+      setDayId(day.id);
+      refreshIntervals();
+    }).catch(console.error);
+    refreshMonths(); // Refresh months data
+  }, [getOrCreateDay, refreshMonths, refreshIntervals]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDashboardData();
+    }, [loadDashboardData])
+  );
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -61,18 +66,19 @@ export default function DashboardScreen() {
   const totalHorasHjObj = intervals.reduce((acc, curr) => {
     return curr.fim ? acc + calculateDuration(curr.inicio, curr.fim) : acc;
   }, 0);
-  
+
   const horasFormatado = `${Math.floor(totalHorasHjObj).toString().padStart(2, '0')}:${Math.round((totalHorasHjObj % 1) * 60).toString().padStart(2, '0')}`;
 
   useEffect(() => {
     const initSync = async () => {
       const success = await performSync();
       if (success) {
-        refresh(); // Refresh months data after sync
+        refreshMonths(); // Refresh months data after sync
+        refreshIntervals(); // Refresh intervals too
       }
     };
     initSync();
-  }, [performSync, refresh]);
+  }, [performSync, refreshMonths, refreshIntervals]);
 
   const navigateToDay = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -106,32 +112,64 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.statsGrid}>
-        <DashboardCard 
-          title="Horas Hoje" 
+        <DashboardCard
+          title="Horas Hoje"
           value={horasFormatado}
-          icon={Clock} 
-          color={theme.colors.primary} 
+          icon={Clock}
+          color={theme.colors.primary}
           backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToDay}
         />
-        <DashboardCard 
-          title="Progresso Mês" 
-          value={`${summary.progressPercent.toFixed(0)}%`}
-          icon={TrendingUp} 
-          color={theme.colors.secondary} 
+        <DashboardCard
+          title="Valor Executado"
+          value={`R$ ${summary.valueTotal.toFixed(2).replace('.', ',')}`}
+          icon={DollarSign}
+          color={theme.colors.secondary}
           backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToCalendar}
         />
-        <DashboardCard 
-          title="Valor Estimado" 
-          value={`R$ ${summary.valueTotal.toFixed(0)}`}
-          icon={DollarSign} 
-          color={theme.colors.primary_container} 
+        <DashboardCard
+          title="Valor Estimado"
+          value={`R$ ${summary.estimativa.toFixed(2).replace('.', ',')}`}
+          icon={DollarSign}
+          color={theme.colors.primary_container}
+          backgroundColor={theme.colors.surface_container_lowest}
+          onPress={navigateToCalendar}
+        />
+        <DashboardCard
+          title="Progresso Mês"
+          value={`${summary.progressPercent.toFixed(0)}%`}
+          icon={TrendingUp}
+          color={theme.colors.primary}
           backgroundColor={theme.colors.surface_container_lowest}
           onPress={navigateToCalendar}
         />
       </View>
-      
+
+      <View style={styles.chartSection}>
+        <Text style={styles.sectionTitle}>Andamento Mensal</Text>
+        <View style={styles.chartCard}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartScroll}>
+            {summary.chartData?.map((data, index) => {
+              const maxHours = Math.max(8, ...summary.chartData.map(d => d.hours));
+              const heightPercent = (data.hours / maxHours) * 100;
+              return (
+                <View key={index} style={styles.barContainer}>
+                  <Text style={styles.barValue}>{data.hours > 0 ? data.hours.toFixed(1) : ''}</Text>
+                  <View style={styles.barBackground}>
+                    <View style={[styles.barFill, { height: `${heightPercent}%` }]} />
+                  </View>
+                  <Text style={styles.barLabel}>{data.day.toString().padStart(2, '0')}</Text>
+                </View>
+              );
+            })}
+            {(!summary.chartData || summary.chartData.length === 0) && (
+              <Text style={styles.emptyText}>Nenhum dado para exibir no momento.</Text>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Últimos Intervalos</Text>
@@ -139,7 +177,7 @@ export default function DashboardScreen() {
             <Text style={styles.seeAll}>Calendário</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
             {user?.leitor ? 'Modo de visualização. Registros aparecem aqui conforme sincronizados.' : 'Nenhum intervalo registrado hoje.'}
@@ -165,7 +203,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 24,
     paddingBottom: 32,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -229,6 +267,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
   iconContainer: {
@@ -237,22 +277,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 8,
   },
   cardTitle: {
     color: '#50434D',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
+    flex: 1,
+    flexWrap: 'wrap',
   },
   cardValue: {
     color: '#1E1A22',
     fontSize: 22,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   section: {
     paddingHorizontal: 24,
-    marginTop: 16,
+    marginTop: 10,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -293,5 +336,57 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: theme.colors.on_primary,
     fontFamily: theme.fonts.bold,
+  },
+  chartSection: {
+    paddingHorizontal: 24,
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  chartCard: {
+    backgroundColor: theme.colors.surface_container_lowest,
+    borderRadius: 20,
+    padding: 16,
+    paddingBottom: 0,
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: '#460045',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  chartScroll: {
+    paddingTop: 16,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  barContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 28,
+  },
+  barBackground: {
+    height: 120,
+    width: 12,
+    backgroundColor: '#F4EBF6',
+    borderRadius: 6,
+    justifyContent: 'flex-end',
+    marginBottom: 8,
+  },
+  barFill: {
+    width: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 6,
+  },
+  barLabel: {
+    fontSize: 10,
+    color: '#82737D',
+    fontFamily: theme.fonts.medium,
+  },
+  barValue: {
+    fontSize: 9,
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.bold,
+    marginBottom: 4,
   },
 });
