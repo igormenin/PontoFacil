@@ -91,12 +91,14 @@ export function useIntervals(dayId?: number) {
       const db = await getDatabase();
       const now = Date.now();
 
+      const record = await db.getFirstAsync<any>('SELECT server_id FROM intervalos WHERE id = ?', [id]);
+
       await db.runAsync('DELETE FROM intervalos WHERE id = ?', [id]);
 
       // Log to sync_queue
       await db.runAsync(
-        'INSERT INTO sync_queue (table_name, local_id, operation, created_at) VALUES (?, ?, ?, ?)',
-        ['intervalos', id, 'DELETE', now]
+        'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
+        ['intervalos', id, record?.server_id || null, 'DELETE', now]
       );
 
       await fetchIntervals();

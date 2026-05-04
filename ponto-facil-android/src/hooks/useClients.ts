@@ -60,11 +60,14 @@ export function useClients() {
       const db = await getDatabase();
       const now = Date.now();
       
+      // Get server_id before deleting so we can tell the backend what to delete
+      const client = await db.getFirstAsync<any>('SELECT server_id FROM clientes WHERE id = ?', [id]);
+      
       await db.runAsync('DELETE FROM clientes WHERE id = ?', [id]);
       
       await db.runAsync(
-        'INSERT INTO sync_queue (table_name, local_id, operation, created_at) VALUES (?, ?, ?, ?)',
-        ['clientes', id, 'DELETE', now]
+        'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
+        ['clientes', id, client?.server_id || null, 'DELETE', now]
       );
 
       await fetchClients();

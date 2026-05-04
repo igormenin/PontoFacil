@@ -59,11 +59,13 @@ export function useValorHora(clienteId?: number) {
       const db = await getDatabase();
       const now = Date.now();
       
+      const record = await db.getFirstAsync<any>('SELECT server_id FROM valor_hora_historico WHERE id = ?', [id]);
+      
       await db.runAsync('DELETE FROM valor_hora_historico WHERE id = ?', [id]);
       
       await db.runAsync(
-        'INSERT INTO sync_queue (table_name, local_id, operation, created_at) VALUES (?, ?, ?, ?)',
-        ['valor_hora_historico', id, 'DELETE', now]
+        'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
+        ['valor_hora_historico', id, record?.server_id || null, 'DELETE', now]
       );
 
       await fetchValores();
