@@ -17,7 +17,7 @@ export const syncService = {
         const { table, operation, localId, payload } = mutation;
         
         // Allowed tables for sync
-        if (!['cliente', 'dia', 'intervalo', 'mes', 'feriado'].includes(table)) {
+        if (!['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base'].includes(table)) {
           console.warn(`Attempt to sync illegal table: ${table}`);
           continue;
         }
@@ -120,7 +120,7 @@ export const syncService = {
         maxIds = {};
       }
       
-      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado'];
+      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base'];
       const changes = {};
       const newMaxIds = { ...maxIds };
       const currentSyncTime = new Date();

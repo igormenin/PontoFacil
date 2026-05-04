@@ -50,9 +50,16 @@ export function useIntervals(dayId?: number) {
       // Calculate derived fields
       const horas = data.fim ? calculateDuration(data.inicio, data.fim) : 0;
       
-      // Get current valor_hora for client (For MVP, we'll try to find any valor_hora record, or just use 0 if not found)
-      // Note: Real logic would involve valor_hora_base table
-      const valorHora = 0; 
+      // Get current valor_hora for client
+      const dayRes = await db.getFirstAsync<any>('SELECT data FROM dias WHERE id = ?', [data.dia_id]);
+      const dateStr = dayRes?.data || new Date().toISOString().split('T')[0];
+      const anoMes = dateStr.substring(0, 7); // YYYY-MM
+
+      const rateRes = await db.getFirstAsync<any>(
+        'SELECT valor FROM valor_hora_historico WHERE cliente_id = ? AND mes_inicio <= ? ORDER BY mes_inicio DESC LIMIT 1',
+        [data.cliente_id, anoMes]
+      );
+      const valorHora = rateRes?.valor || 0;
       const valorTotal = horas * valorHora;
 
       // Determine order

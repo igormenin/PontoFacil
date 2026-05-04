@@ -21,49 +21,112 @@ export function useSync() {
       // 1. PUSH PHASE - Skip if reader
       if (!isLeitor) {
         try {
-          // Fetch all unique table names in queue
-          const tablesInQueue = await db.getAllAsync<{ table_name: string }>('SELECT DISTINCT table_name FROM sync_queue');
+          const tableOrder = ['clientes', 'dias', 'intervalos', 'meses', 'feriados', 'valor_hora_historico'];
           
-          for (const { table_name } of tablesInQueue) {
+          for (const table_name of tableOrder) {
             const pendingMutations = await db.getAllAsync<any>(
               'SELECT * FROM sync_queue WHERE table_name = ? ORDER BY created_at ASC',
               [table_name]
             );
 
             if (pendingMutations.length > 0) {
-              const mutations = pendingMutations.map(m => {
+              const mutations = [];
+              
+              for (const m of pendingMutations) {
                 let singularTable = m.table_name;
                 if (singularTable === 'clientes') singularTable = 'cliente';
                 else if (singularTable === 'dias') singularTable = 'dia';
                 else if (singularTable === 'intervalos') singularTable = 'intervalo';
                 else if (singularTable === 'meses') singularTable = 'mes';
                 else if (singularTable === 'feriados') singularTable = 'feriado';
-                
-                return {
+
+                const rawPayload = JSON.parse(m.payload || '{}');
+                let mappedPayload: any = {};
+
+                // Map local fields to backend fields
+                if (singularTable === 'cliente') {
+                  mappedPayload = {
+                    cli_nome: rawPayload.nome,
+                    cli_ativo: rawPayload.ativo !== undefined ? !!rawPayload.ativo : true
+                  };
+                } else if (singularTable === 'dia') {
+                  mappedPayload = {
+                    dia_data: rawPayload.data,
+                    dia_tipo: rawPayload.tipo,
+                    dia_horas_meta: rawPayload.horas_meta,
+                    dia_observacao: rawPayload.observacao
+                  };
+                } else if (singularTable === 'intervalo') {
+                  // Resolve foreign keys
+                  const dia = await db.getFirstAsync<any>('SELECT server_id FROM dias WHERE id = ?', [rawPayload.dia_id]);
+                  const cli = await db.getFirstAsync<any>('SELECT server_id FROM clientes WHERE id = ?', [rawPayload.cliente_id]);
+                  
+                  if (!dia?.server_id) {
+                    console.warn(`[Sync] Skipping interval push - parent day not synced yet: local_id ${rawPayload.dia_id}`);
+                    continue; // Skip this mutation for now, it will be retried next sync
+                  }
+
+                  mappedPayload = {
+                    int_dia_id: dia.server_id,
+                    int_cli_id: cli?.server_id || null,
+                    int_ordem: rawPayload.ordem,
+                    int_inicio: rawPayload.inicio,
+                    int_fim: rawPayload.fim,
+                    int_anotacoes: rawPayload.anotacoes,
+                    int_valor_hora: rawPayload.valor_hora,
+                    int_valor_total: rawPayload.valor_total
+                  };
+                } else if (singularTable === 'mes') {
+                  mappedPayload = {
+                    mes_ano_mes: rawPayload.ano_mes,
+                    mes_valor_hora: rawPayload.valor_hora,
+                    mes_horas_meta: rawPayload.horas_meta,
+                    mes_horas_dia: rawPayload.horas_dia,
+                    mes_dias_uteis: rawPayload.dias_uteis,
+                    mes_estimativa: rawPayload.estimativa,
+                    mes_realizado: rawPayload.realizado
+                  };
+                } else if (singularTable === 'feriado') {
+                  mappedPayload = {
+                    fer_data: rawPayload.data,
+                    fer_nome: rawPayload.nome,
+                    fer_tipo: rawPayload.tipo
+                  };
+                } else if (table_name === 'valor_hora_historico') {
+                  const cli = await db.getFirstAsync<any>('SELECT server_id FROM clientes WHERE id = ?', [rawPayload.cliente_id]);
+                  mappedPayload = {
+                    vhb_cli_id: cli?.server_id,
+                    vhb_valor: rawPayload.valor,
+                    vhb_data_inicio: rawPayload.mes_inicio + '-01'
+                  };
+                  singularTable = 'valor_hora_base';
+                } else {
+                  mappedPayload = rawPayload;
+                }
+
+                mutations.push({
                   table: singularTable,
                   operation: m.operation,
                   localId: m.local_id,
                   serverId: m.server_id,
-                  payload: JSON.parse(m.payload || '{}')
-                };
-              });
+                  payload: mappedPayload
+                });
+              }
+
+              if (mutations.length === 0) continue;
 
               const { results } = await pushSync(mutations);
 
               for (const res of results) {
                 if (res.status === 'success' && res.serverId) {
-                  const localTable = table_name === 'cliente' ? 'clientes' : 
-                                    table_name === 'dia' ? 'dias' : 
-                                    table_name === 'intervalo' ? 'intervalos' : table_name;
-                  
                   await db.runAsync(
-                    `UPDATE ${localTable} SET server_id = ?, sync_status = 'synced' WHERE id = ?`,
+                    `UPDATE ${table_name} SET server_id = ?, sync_status = 'synced' WHERE id = ?`,
                     [res.serverId, res.localId]
                   );
                 }
-                const matchId = pendingMutations.find(m => m.local_id === res.localId)?.id;
-                if (matchId) {
-                  await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [matchId]);
+                const matchQueueRecord = pendingMutations.find(m => m.local_id === res.localId);
+                if (matchQueueRecord && (res.status === 'success' || res.message?.includes('Conflict'))) {
+                   await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [matchQueueRecord.id]);
                 }
               }
             }
@@ -85,7 +148,8 @@ export function useSync() {
         'dia': 'dias',
         'intervalo': 'intervalos',
         'mes': 'meses',
-        'feriado': 'feriados'
+        'feriado': 'feriados',
+        'valor_hora_base': 'valor_hora_historico'
       };
 
       const sanitize = (arr: any[]) => arr.map(v => v === undefined ? null : v);
@@ -163,6 +227,16 @@ export function useSync() {
                 await db.runAsync(`UPDATE feriados SET data = ?, nome = ?, tipo = ?, sync_status = ? WHERE server_id = ?`, data);
               } else {
                 await db.runAsync(`INSERT INTO feriados (data, nome, tipo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
+              }
+            } else if (remoteTable === 'valor_hora_base') {
+              const localCli = await db.getFirstAsync<any>('SELECT id FROM clientes WHERE server_id = ?', [remote.vhb_cli_id ?? null]);
+              if (localCli) {
+                const data = sanitize([localCli.id, remote.vhb_valor ?? 0, remote.vhb_data_inicio?.substring(0, 7) ?? '', 1, 'synced', serverId]);
+                if (existing) {
+                  await db.runAsync(`UPDATE valor_hora_historico SET cliente_id = ?, valor = ?, mes_inicio = ?, ativo = ?, sync_status = ? WHERE server_id = ?`, data);
+                } else {
+                  await db.runAsync(`INSERT INTO valor_hora_historico (cliente_id, valor, mes_inicio, ativo, sync_status, server_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, sanitize([...data, Date.now()]));
+                }
               }
             }
           } catch (e: any) {
