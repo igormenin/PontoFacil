@@ -4,8 +4,13 @@ import { logger } from '../utils/logger.js';
 
 const { Pool } = pg;
 
+let connectionString = env.DB.URL;
+if (connectionString && env.DB.SSL && !connectionString.includes('sslmode=')) {
+  connectionString += (connectionString.includes('?') ? '&' : '?') + 'sslmode=verify-full';
+}
+
 const pool = new Pool({
-  connectionString: env.DB.URL,
+  connectionString: connectionString,
   host: env.DB.URL ? undefined : env.DB.HOST,
   port: env.DB.URL ? undefined : env.DB.PORT,
   user: env.DB.URL ? undefined : env.DB.USER,

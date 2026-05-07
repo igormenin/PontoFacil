@@ -1,5 +1,17 @@
 import { pool } from '../../config/database.js';
 
+const getPkName = (table) => {
+  const map = {
+    cliente: 'cli_id',
+    dia: 'dia_id',
+    intervalo: 'int_id',
+    mes: 'mes_id',
+    feriado: 'fer_id',
+    valor_hora_base: 'vh_id'
+  };
+  return map[table] || `${table.substring(0, 3)}_id`;
+};
+
 export const syncService = {
   /**
    * Processes a batch of mutations from a device.
@@ -23,6 +35,27 @@ export const syncService = {
         }
 
         if (operation === 'CREATE' || operation === 'UPDATE') {
+          // Fix for dia_mes_id null issue
+          if (table === 'dia' && !payload.dia_mes_id && payload.dia_data) {
+             const [anoStr, mesStr] = payload.dia_data.split('-');
+             const ano = parseInt(anoStr, 10);
+             const mesNum = parseInt(mesStr, 10);
+             
+             let mesResult = await client.query(
+               `SELECT mes_id FROM mes WHERE usu_id = $1 AND mes_ano = $2 AND mes_mes = $3`,
+               [userId, ano, mesNum]
+             );
+             if (mesResult.rows.length > 0) {
+               payload.dia_mes_id = mesResult.rows[0].mes_id;
+             } else {
+               const insertMes = await client.query(
+                 `INSERT INTO mes (usu_id, mes_ano, mes_mes, updated_at) VALUES ($1, $2, $3, NOW()) RETURNING mes_id`,
+                 [userId, ano, mesNum]
+               );
+               payload.dia_mes_id = insertMes.rows[0].mes_id;
+             }
+          }
+
           const columns = Object.keys(payload);
           const values = Object.values(payload);
           
@@ -60,7 +93,7 @@ export const syncService = {
           }
 
           if (finalRow) {
-            results.push({ localId, serverId: finalRow[`${table.substring(0, 3)}_id`], status: 'success' });
+            results.push({ localId, serverId: finalRow[getPkName(table)], status: 'success' });
           } else {
             // This happens if the unique constraint hit was on a DIFFERENT constraint (e.g. dia_data)
             // It means this device tried to insert a day that already exists from another device/user.
@@ -70,7 +103,7 @@ export const syncService = {
         } else if (operation === 'DELETE') {
           await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() 
-             WHERE usu_id = $1 AND ((device_id = $2 AND local_id = $3) OR (${table.substring(0, 3)}_id = $4))`,
+             WHERE usu_id = $1 AND ((device_id = $2 AND local_id = $3) OR (${getPkName(table)} = $4))`,
             [userId, deviceId, localId, mutation.serverId]
           );
           results.push({ localId, status: 'deleted' });
@@ -126,7 +159,7 @@ export const syncService = {
       const currentSyncTime = new Date();
       
       for (const table of tables) {
-        const pk = `${table.substring(0, 3)}_id`;
+        const pk = getPkName(table);
         const lastMaxId = maxIds[table] || 0;
         
         const params = isLeitor ? [lastMaxId, lastSyncAt] : [userId, lastMaxId, lastSyncAt];
