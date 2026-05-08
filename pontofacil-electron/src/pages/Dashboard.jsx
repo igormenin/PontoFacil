@@ -72,9 +72,13 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
   const annualHistory = useMemo(() => {
     if (!meses || !Array.isArray(meses)) return [];
     return meses.slice(0, 6).reverse().map(m => {
-      const dateStr = m.mesAnoMes ? `${m.mesAnoMes}-01` : null;
+      let label = '?';
+      if (m.mesAnoMes) {
+        const [year, month] = m.mesAnoMes.split('-');
+        label = new Date(year, month - 1, 1, 12).toLocaleDateString('pt-BR', { month: 'short' });
+      }
       return {
-        label: dateStr ? new Date(dateStr).toLocaleDateString('pt-BR', { month: 'short' }) : '?',
+        label,
         value: Number(m.mesRealizado || 0),
         meta: Number(m.mesHorasMeta || 160)
       };
@@ -107,7 +111,9 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
   };
 
   const handleMonthSelection = (anoMes) => {
-    const today = new Date().toISOString().substring(0, 7);
+    const todayDate = new Date();
+    const today = `${todayDate.getFullYear()}-${(todayDate.getMonth() + 1).toString().padStart(2, '0')}`;
+    
     if (anoMes > today) {
       toast.error('Não é possível navegar para meses futuros');
       return;
@@ -171,9 +177,12 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                  <input 
                    type="month"
                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                   max={new Date().toISOString().substring(0, 7)}
+                   max={`${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`}
                    onChange={(e) => {
-                     if (e.target.value) handleMonthSelection(e.target.value);
+                     if (e.target.value) {
+                       handleMonthSelection(e.target.value);
+                       e.target.value = ''; // Reset to allow clicking the same month again
+                     }
                    }}
                    title="Ir para qualquer mês"
                  />

@@ -61,7 +61,8 @@ const Feriados = ({ onBack }) => {
   const groupedFeriados = useMemo(() => {
     const groups = {};
     filteredFeriados.forEach(f => {
-      const month = new Date(f.virtualData || f.ferData).toLocaleDateString('pt-BR', { month: 'long' });
+      const date = new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00');
+      const month = date.toLocaleDateString('pt-BR', { month: 'long' });
       if (!groups[month]) groups[month] = [];
       groups[month].push(f);
     });
@@ -200,8 +201,8 @@ const Feriados = ({ onBack }) => {
       </div>
 
       {/* Content Area - Agenda Style */}
-      <div className="flex-1 overflow-auto p-10">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 overflow-auto px-10 pb-10">
+        <div className="max-w-7xl mx-auto pt-10">
           {loading && feriados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="animate-spin text-[#631660]" size={48} />
@@ -224,28 +225,31 @@ const Feriados = ({ onBack }) => {
           ) : (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
                {Object.entries(groupedFeriados).map(([month, monthFeriados]) => (
-                 <div key={month} className="space-y-4">
-                    <h3 className="text-xs font-black text-[#631660] uppercase tracking-[0.4em] sticky top-0 py-2 bg-[#fff7ff] z-10">
-                      {month}
-                    </h3>
-                    <div className="grid gap-4">
+                  <div key={month} className="flex gap-8 items-center">
+                    <div className="sticky top-10 shrink-0">
+                       <h3 className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-[#631660] uppercase tracking-[0.5em] whitespace-nowrap opacity-50">
+                         {month}
+                       </h3>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {monthFeriados.map((f) => (
                         <div 
                           key={f.ferId}
                           className="bg-white rounded-[2rem] border border-[#eee5f0] p-6 shadow-sm hover:shadow-md transition-all flex items-center justify-between group"
                         >
                           <div className="flex items-center gap-6">
-                             <div className="flex flex-col items-center justify-center w-16 h-16 bg-[#f4ebf6] rounded-2xl border border-[#eee5f0] shrink-0">
-                                <span className="text-[10px] font-black text-[#631660] uppercase">
-                                  {new Date(f.virtualData || f.ferData).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                             <div className="flex flex-col items-center justify-center w-14 h-14 bg-[#f4ebf6] rounded-2xl border border-[#eee5f0] shrink-0">
+                                <span className="text-[9px] font-black text-[#631660] uppercase">
+                                  {new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
                                 </span>
-                                <span className="text-2xl font-black text-[#1e1a22]">
-                                  {new Date(f.virtualData || f.ferData).getUTCDate()}
+                                <span className="text-xl font-black text-[#1e1a22]">
+                                  {new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00').getDate()}
                                 </span>
                              </div>
                              
                              <div className="space-y-1">
-                                <h4 className="text-xl font-black text-[#1e1a22] tracking-tight">{f.ferNome}</h4>
+                                <h4 className="text-lg font-black text-[#1e1a22] tracking-tight line-clamp-1">{f.ferNome}</h4>
                                 <div className="flex items-center gap-3">
                                    <div className="flex items-center gap-1 text-[10px] font-black text-[#82737d] uppercase tracking-widest bg-[#f4ebf6]/50 px-2 py-0.5 rounded">
                                       {getTipoIcon(f.ferTipo)}
@@ -260,7 +264,7 @@ const Feriados = ({ onBack }) => {
                              </div>
                           </div>
 
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                             <button 
                               onClick={() => handleOpenModal(f)}
                               className="p-3 bg-[#f4ebf6] text-[#631660] rounded-xl hover:bg-[#631660] hover:text-white transition-all shadow-sm"
@@ -277,6 +281,7 @@ const Feriados = ({ onBack }) => {
                           </div>
                         </div>
                       ))}
+                       </div>
                     </div>
                  </div>
                ))}
