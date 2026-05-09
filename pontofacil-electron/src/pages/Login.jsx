@@ -6,6 +6,16 @@ import { toast } from 'react-hot-toast';
 const Login = () => {
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('pontofacil_remember') === 'true';
+  });
+
+  React.useEffect(() => {
+    const savedUser = localStorage.getItem('pontofacil_saved_user');
+    const savedPass = localStorage.getItem('pontofacil_saved_pass');
+    if (savedUser) setLogin(savedUser);
+    if (savedPass) setSenha(savedPass);
+  }, []);
   
   // Forgot Password States
   const [view, setView] = useState('login'); // login, forgot, reset
@@ -29,6 +39,15 @@ const Login = () => {
 
     const success = await performLogin(login, senha);
     if (success) {
+      if (rememberMe) {
+        localStorage.setItem('pontofacil_remember', 'true');
+        localStorage.setItem('pontofacil_saved_user', login);
+        localStorage.setItem('pontofacil_saved_pass', senha);
+      } else {
+        localStorage.removeItem('pontofacil_remember');
+        localStorage.removeItem('pontofacil_saved_user');
+        localStorage.removeItem('pontofacil_saved_pass');
+      }
       toast.success('Bem-vindo ao Ponto Fácil!');
     } else {
       toast.error('Credenciais inválidas.');
@@ -95,6 +114,19 @@ const Login = () => {
                     className="w-full px-5 py-4 bg-[#fcf8fc] border border-[#eee5f0] focus:ring-2 focus:ring-[#631660] transition-all outline-none rounded-2xl font-bold"
                     placeholder="••••••••"
                   />
+                </div>
+
+                <div className="flex items-center gap-3 bg-[#fcf8fc] p-4 rounded-2xl border border-[#eee5f0] cursor-pointer hover:bg-[#fff] transition-all" onClick={() => setRememberMe(!rememberMe)}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-5 h-5 rounded text-[#631660] focus:ring-[#631660] accent-[#631660] cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-black text-[#1e1a22] text-xs uppercase tracking-widest">Lembrar credenciais</span>
+                    <span className="text-[10px] text-[#82737d] font-bold italic">Preencher automaticamente na próxima vez</span>
+                  </div>
                 </div>
 
                 <button

@@ -13,7 +13,8 @@
     "test:api": "node --test src/tests/api_flow.test.js",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
-    "migrate:create": "node-pg-migrate create"
+    "migrate:create": "node-pg-migrate create",
+    "vercel-build": "node-pg-migrate up"
   },
   "dependencies": {
     "axios": "^1.15.0",

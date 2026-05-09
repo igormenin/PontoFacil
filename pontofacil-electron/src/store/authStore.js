@@ -22,7 +22,7 @@ export const useAuthStore = create((set) => ({
         set({ 
           token: auth.token, 
           user: auth.user, 
-          isAuthenticated: true, 
+          isAuthenticated: false, // Force login screen even if token exists
           isInitializing: false 
         });
       } else {
