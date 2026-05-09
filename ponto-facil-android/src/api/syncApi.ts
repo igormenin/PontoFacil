@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 
 // Point to Render production API
-const API_URL = 'https://pontofacil-72p0.onrender.com/api';
+const API_URL = 'https://pontofacil-seven.vercel.app/api';
 
 const syncApi = axios.create({
   baseURL: API_URL,

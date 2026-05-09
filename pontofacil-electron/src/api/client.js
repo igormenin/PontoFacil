@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://pontofacil-72p0.onrender.com/api',
+  baseURL: 'https://pontofacil-seven.vercel.app/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
