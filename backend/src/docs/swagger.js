@@ -10,6 +10,10 @@ const options = {
     },
     servers: [
       {
+        url: 'https://pontofacil-seven.vercel.app/api',
+        description: 'Servidor de Produção (Vercel)',
+      },
+      {
         url: 'http://localhost:3000/api',
         description: 'Servidor Local (Desenvolvimento)',
       },
