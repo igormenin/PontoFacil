@@ -18,22 +18,30 @@ export default function CalendarScreen() {
   const navigation = useNavigation<any>();
   const { selectedMonth, summary, loading, changeMonth } = useMonths();
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navButton}>
-        <ChevronLeft color="#460045" size={24} />
-      </TouchableOpacity>
-      
-      <View style={styles.monthTitle}>
-        <Text style={styles.monthName}>{MONTHS_BR[selectedMonth.getMonth()]}</Text>
-        <Text style={styles.yearName}>{selectedMonth.getFullYear()}</Text>
-      </View>
+  const renderHeader = () => {
+    const isCurrentMonth = selectedMonth.getFullYear() === new Date().getFullYear() && selectedMonth.getMonth() === new Date().getMonth();
 
-      <TouchableOpacity onPress={() => changeMonth(1)} style={styles.navButton}>
-        <ChevronRight color="#460045" size={24} />
-      </TouchableOpacity>
-    </View>
-  );
+    return (
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navButton}>
+          <ChevronLeft color="#460045" size={24} />
+        </TouchableOpacity>
+        
+        <View style={styles.monthTitle}>
+          <Text style={styles.monthName}>{MONTHS_BR[selectedMonth.getMonth()]}</Text>
+          <Text style={styles.yearName}>{selectedMonth.getFullYear()}</Text>
+        </View>
+
+        <TouchableOpacity 
+          onPress={() => !isCurrentMonth && changeMonth(1)} 
+          style={[styles.navButton, isCurrentMonth && { opacity: 0.3 }]}
+          disabled={isCurrentMonth}
+        >
+          <ChevronRight color="#460045" size={24} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const renderSummary = () => (
     <View style={styles.summaryContainer}>

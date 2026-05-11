@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Clock, Users, MessageSquare } from 'lucide-react-native';
 import { useClients } from '../hooks/useClients';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Platform } from 'react-native';
+import { theme } from '../theme/theme';
 
 interface IntervalFormProps {
   onSubmit: (data: { cliente_id: number; inicio: string; fim: string; anotacoes: string }) => void;
@@ -11,13 +14,34 @@ interface IntervalFormProps {
 export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) {
   const { clients } = useClients();
   const [clientId, setClientId] = useState<number | null>(clients[0]?.id || null);
-  const [inicio, setInicio] = useState('09:00');
-  const [fim, setFim] = useState('12:00');
+  const [inicioDate, setInicioDate] = useState(() => {
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    return d;
+  });
+  const [fimDate, setFimDate] = useState(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    return d;
+  });
+  const [showInicioPicker, setShowInicioPicker] = useState(false);
+  const [showFimPicker, setShowFimPicker] = useState(false);
   const [anotacoes, setAnotacoes] = useState('');
 
+  const formatTime = (date: Date) => {
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  };
+
   const handleSave = () => {
-    if (clientId && inicio && fim) {
-      onSubmit({ cliente_id: clientId, inicio, fim, anotacoes });
+    if (clientId) {
+      const isFimBeforeInicio = fimDate.getHours() < inicioDate.getHours() || 
+        (fimDate.getHours() === inicioDate.getHours() && fimDate.getMinutes() < inicioDate.getMinutes());
+        
+      if (isFimBeforeInicio) {
+        Alert.alert('Horário Inválido', 'O horário de fim não pode ser anterior ao horário de início.');
+        return;
+      }
+      onSubmit({ cliente_id: clientId, inicio: formatTime(inicioDate), fim: formatTime(fimDate), anotacoes });
     }
   };
 
@@ -25,7 +49,7 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <View style={styles.labelContainer}>
-          <Users size={16} color="#FF00FF" />
+          <Users size={16} color={theme.colors.primary} />
           <Text style={styles.label}>Cliente</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientPicker}>
@@ -46,36 +70,52 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
       <View style={styles.timeRow}>
         <View style={styles.timeInputContainer}>
           <View style={styles.labelContainer}>
-            <Clock size={16} color="#03DAC6" />
+            <Clock size={16} color={theme.colors.primary} />
             <Text style={styles.label}>Início</Text>
           </View>
-          <TextInput
-            style={styles.input}
-            value={inicio}
-            onChangeText={setInicio}
-            placeholder="00:00"
-            placeholderTextColor="#444"
-          />
+          <TouchableOpacity style={styles.input} onPress={() => setShowInicioPicker(true)}>
+            <Text style={styles.inputText}>{formatTime(inicioDate)}</Text>
+          </TouchableOpacity>
+          {showInicioPicker && (
+            <DateTimePicker
+              value={inicioDate}
+              mode="time"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowInicioPicker(Platform.OS === 'ios');
+                if (selectedDate) setInicioDate(selectedDate);
+              }}
+            />
+          )}
         </View>
 
         <View style={styles.timeInputContainer}>
           <View style={styles.labelContainer}>
-            <Clock size={16} color="#FF4081" />
+            <Clock size={16} color={theme.colors.secondary} />
             <Text style={styles.label}>Fim</Text>
           </View>
-          <TextInput
-            style={styles.input}
-            value={fim}
-            onChangeText={setFim}
-            placeholder="00:00"
-            placeholderTextColor="#444"
-          />
+          <TouchableOpacity style={styles.input} onPress={() => setShowFimPicker(true)}>
+            <Text style={styles.inputText}>{formatTime(fimDate)}</Text>
+          </TouchableOpacity>
+          {showFimPicker && (
+            <DateTimePicker
+              value={fimDate}
+              mode="time"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowFimPicker(Platform.OS === 'ios');
+                if (selectedDate) setFimDate(selectedDate);
+              }}
+            />
+          )}
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.labelContainer}>
-          <MessageSquare size={16} color="#6200EE" />
+          <MessageSquare size={16} color={theme.colors.primary} />
           <Text style={styles.label}>Anotações</Text>
         </View>
         <TextInput
@@ -114,34 +154,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: '#888',
+    color: theme.colors.on_surface_variant,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: theme.fonts.bold,
     marginLeft: 8,
   },
   clientPicker: {
     flexDirection: 'row',
   },
   clientChip: {
-    backgroundColor: '#1E1E2E',
+    backgroundColor: theme.colors.surface_container,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: theme.colors.outline,
   },
   clientChipSelected: {
-    backgroundColor: '#6200EE22',
-    borderColor: '#6200EE',
+    backgroundColor: theme.colors.primary_container,
+    borderColor: theme.colors.primary,
   },
   clientChipText: {
-    color: '#888',
+    color: theme.colors.on_surface_variant,
     fontSize: 14,
+    fontFamily: theme.fonts.medium,
   },
   clientChipTextSelected: {
     color: '#FFF',
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
   },
   timeRow: {
     flexDirection: 'row',
@@ -152,13 +193,20 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   input: {
-    backgroundColor: '#0F0F1A',
-    borderRadius: 8,
-    padding: 14,
-    color: '#FFF',
+    backgroundColor: theme.colors.surface_container_lowest,
+    borderRadius: 16,
+    padding: 16,
+    color: theme.colors.on_surface,
     fontSize: 16,
+    fontFamily: theme.fonts.regular,
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: theme.colors.surface_container,
+    justifyContent: 'center',
+  },
+  inputText: {
+    color: theme.colors.on_surface,
+    fontSize: 16,
+    fontFamily: theme.fonts.bold,
   },
   textArea: {
     height: 80,
@@ -174,19 +222,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cancelButtonText: {
-    color: '#888',
+    color: theme.colors.on_surface_variant,
     fontSize: 16,
+    fontFamily: theme.fonts.medium,
   },
   saveButton: {
-    backgroundColor: '#6200EE',
+    backgroundColor: theme.colors.primary_container,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     marginLeft: 12,
   },
   saveButtonText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: theme.fonts.bold,
   },
 });

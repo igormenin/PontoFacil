@@ -35,7 +35,8 @@ const Feriados = ({ onBack }) => {
     const yearsSet = new Set();
     yearsSet.add(new Date().getFullYear().toString());
     feriados.forEach(f => {
-      const year = new Date(f.ferData).getFullYear().toString();
+      const date = new Date(f.ferData.substring(0, 10) + 'T12:00:00');
+      const year = date.getFullYear().toString();
       yearsSet.add(year);
     });
     return Array.from(yearsSet).sort((a, b) => b - a);
@@ -44,29 +45,40 @@ const Feriados = ({ onBack }) => {
   const filteredFeriados = useMemo(() => {
     return feriados
       .filter(f => {
-        const yearMatch = (new Date(f.ferData).getFullYear().toString() === selectedYear) || f.ferFixo;
+        const date = new Date(f.ferData.substring(0, 10) + 'T12:00:00');
+        const yearMatch = (date.getFullYear().toString() === selectedYear) || f.ferFixo;
         const searchMatch = f.ferNome.toLowerCase().includes(searchTerm.toLowerCase());
         return yearMatch && searchMatch;
       })
       .map(f => {
-        if (!f.ferFixo) return f;
-        const d = new Date(f.ferData);
+        if (!f.ferFixo) return { ...f, sortDate: new Date(f.ferData.substring(0, 10) + 'T12:00:00') };
+        const d = new Date(f.ferData.substring(0, 10) + 'T12:00:00');
         d.setFullYear(parseInt(selectedYear, 10));
-        return { ...f, virtualData: d.toISOString() };
+        return { ...f, virtualData: d.toISOString(), sortDate: d };
       })
-      .sort((a, b) => new Date(a.virtualData || a.ferData) - new Date(b.virtualData || b.ferData));
+      .sort((a, b) => a.sortDate - b.sortDate);
   }, [feriados, selectedYear, searchTerm]);
 
   // Group by month for agenda view
   const groupedFeriados = useMemo(() => {
     const groups = {};
     filteredFeriados.forEach(f => {
-      const date = new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00');
-      const month = date.toLocaleDateString('pt-BR', { month: 'long' });
-      if (!groups[month]) groups[month] = [];
-      groups[month].push(f);
+      const date = f.sortDate;
+      const monthIndex = date.getMonth();
+      const monthName = date.toLocaleDateString('pt-BR', { month: 'long' });
+      
+      if (!groups[monthIndex]) {
+        groups[monthIndex] = {
+          name: monthName,
+          feriados: []
+        };
+      }
+      groups[monthIndex].feriados.push(f);
     });
-    return groups;
+    
+    return Object.keys(groups)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(key => groups[key]);
   }, [filteredFeriados]);
 
   const handleOpenModal = (feriado = null) => {
@@ -224,7 +236,7 @@ const Feriados = ({ onBack }) => {
             </div>
           ) : (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-               {Object.entries(groupedFeriados).map(([month, monthFeriados]) => (
+               {groupedFeriados.map(({ name: month, feriados: monthFeriados }) => (
                   <div key={month} className="flex gap-8 items-center">
                     <div className="sticky top-10 shrink-0">
                        <h3 className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-[#631660] uppercase tracking-[0.5em] whitespace-nowrap opacity-50">
@@ -241,10 +253,10 @@ const Feriados = ({ onBack }) => {
                           <div className="flex items-center gap-6">
                              <div className="flex flex-col items-center justify-center w-14 h-14 bg-[#f4ebf6] rounded-2xl border border-[#eee5f0] shrink-0">
                                 <span className="text-[9px] font-black text-[#631660] uppercase">
-                                  {new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                {f.sortDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
                                 </span>
                                 <span className="text-xl font-black text-[#1e1a22]">
-                                  {new Date((f.virtualData || f.ferData).substring(0, 10) + 'T12:00:00').getDate()}
+                                  {f.sortDate.getDate()}
                                 </span>
                              </div>
                              

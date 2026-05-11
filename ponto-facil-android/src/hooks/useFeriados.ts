@@ -20,7 +20,7 @@ export function useFeriados() {
     try {
       const db = await getDatabase();
       const result = await db.getAllAsync<Feriado>(
-        'SELECT * FROM feriados ORDER BY data DESC'
+        'SELECT * FROM feriados ORDER BY data ASC'
       );
       setFeriados(result);
     } catch (error) {
@@ -30,18 +30,18 @@ export function useFeriados() {
     }
   }, []);
 
-  const addFeriado = async (data: string, nome: string, fixo: number) => {
+  const addFeriado = async (data: string, nome: string, fixo: number, tipo: string = 'NACIONAL') => {
     try {
       const db = await getDatabase();
       const now = Date.now();
       const result = await db.runAsync(
-        'INSERT INTO feriados (data, nome, fixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?)',
-        [data, nome, fixo, 'pending_create', now]
+        'INSERT INTO feriados (data, nome, tipo, fixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [data, nome, tipo, fixo, 'pending_create', now]
       );
       
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['feriados', result.lastInsertRowId, 'CREATE', JSON.stringify({ data, nome, fixo }), now]
+        ['feriados', result.lastInsertRowId, 'CREATE', JSON.stringify({ data, nome, tipo, fixo }), now]
       );
 
       await fetchFeriados();

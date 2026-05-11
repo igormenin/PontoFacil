@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, AppState } from 'react-native';
-import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw } from 'lucide-react-native';
+import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw, WifiOff } from 'lucide-react-native';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSync } from '../hooks/useSync';
@@ -35,6 +36,8 @@ export default function DashboardScreen() {
   const { getOrCreateDay } = useDays();
   const [dayId, setDayId] = React.useState<number | undefined>();
   const { intervals, refresh: refreshIntervals } = useIntervals(dayId);
+  const netInfo = useNetInfo();
+  const isOffline = netInfo.isConnected === false;
 
   const loadDashboardData = React.useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -93,6 +96,12 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <WifiOff size={14} color="#BA1A1A" style={{ marginRight: 6 }} />
+          <Text style={styles.offlineText}>Modo Offline - Sincronização pausada</Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Olá, {user?.nome?.split(' ')[0] || 'Usuário'}</Text>
@@ -201,9 +210,23 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
+  offlineBanner: {
+    backgroundColor: '#FFDAD6',
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40, // push down a bit because of safe area if needed, or adjust below
+  },
+  offlineText: {
+    color: '#BA1A1A',
+    fontSize: 12,
+    fontFamily: theme.fonts.bold,
+  },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 24, // adjusted
     paddingBottom: 32,
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { LogIn, Lock, User, Clock } from 'lucide-react-native';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../store/useAuthStore';
 import syncApi from '../api/syncApi';
 
@@ -43,7 +44,7 @@ export default function LoginScreen() {
             <Clock size={36} color="#FFFFFF" strokeWidth={2.5} />
           </View>
           <Text style={styles.title}>Ponto Fácil</Text>
-          <Text style={styles.subtitle}>VIBE PREMIUM</Text>
+          <Text style={styles.subtitle}>VERSÃO {Constants.expoConfig?.version}</Text>
         </View>
 
         <View style={styles.form}>

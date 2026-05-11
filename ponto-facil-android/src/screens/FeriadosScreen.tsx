@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Switch } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Switch, Platform, ScrollView } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Plus, X, Calendar as CalendarIcon, Trash2, ArrowLeft } from 'lucide-react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
@@ -12,14 +13,19 @@ export default function FeriadosScreen() {
   
   const [modalVisible, setModalVisible] = useState(false);
   const [nome, setNome] = useState('');
-  const [dataStr, setDataStr] = useState(''); // Simple text for now: YYYY-MM-DD
+  const [dataObj, setDataObj] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tipo, setTipo] = useState('NACIONAL');
   const [fixo, setFixo] = useState(false);
 
+  const tiposDisponiveis = ['NACIONAL', 'ESTADUAL', 'MUNICIPAL', 'FACULTATIVO'];
+
   const handleAdd = async () => {
-    if (nome.trim() && dataStr.trim()) {
-      await addFeriado(dataStr, nome, fixo ? 1 : 0);
+    if (nome.trim()) {
+      await addFeriado(dataObj.toISOString().split('T')[0], nome, fixo ? 1 : 0, tipo);
       setNome('');
-      setDataStr('');
+      setDataObj(new Date());
+      setTipo('NACIONAL');
       setFixo(false);
       setModalVisible(false);
     }
@@ -43,7 +49,9 @@ export default function FeriadosScreen() {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.nome}</Text>
-          <Text style={styles.cardSubtitle}>{item.data} {item.fixo === 1 ? '(Fixo)' : ''}</Text>
+          <Text style={styles.cardSubtitle}>
+            {item.data} • {item.tipo || 'NACIONAL'} {item.fixo === 1 ? '(Fixo)' : ''}
+          </Text>
         </View>
       </View>
     </Swipeable>
@@ -90,8 +98,40 @@ export default function FeriadosScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>DATA (YYYY-MM-DD)</Text>
-              <TextInput style={styles.input} placeholder="2024-12-25" placeholderTextColor={theme.colors.outline} value={dataStr} onChangeText={setDataStr} />
+              <Text style={styles.label}>DATA</Text>
+              <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+                <Text style={{ color: theme.colors.on_surface, fontSize: 16 }}>
+                  {dataObj.toLocaleDateString('pt-BR')}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={dataObj}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) setDataObj(selectedDate);
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>TIPO</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+                {tiposDisponiveis.map(t => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.chip, tipo === t && styles.chipSelected]}
+                    onPress={() => setTipo(t)}
+                  >
+                    <Text style={[styles.chipText, tipo === t && styles.chipTextSelected]}>
+                      {t.charAt(0) + t.slice(1).toLowerCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
             <View style={styles.switchGroup}>
@@ -134,7 +174,12 @@ const styles = StyleSheet.create({
   switchGroup: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingHorizontal: 4 },
   label: { fontSize: 12, fontFamily: theme.fonts.bold, color: theme.colors.secondary, marginBottom: 8, marginLeft: 4 },
   labelSwitch: { fontSize: 16, fontFamily: theme.fonts.bold, color: theme.colors.on_surface },
-  input: { backgroundColor: theme.colors.surface_container, borderRadius: 16, padding: 16, color: theme.colors.on_surface, fontSize: 16, fontFamily: theme.fonts.regular },
+  input: { backgroundColor: theme.colors.surface_container, borderRadius: 16, padding: 16, color: theme.colors.on_surface, fontSize: 16, fontFamily: theme.fonts.regular, justifyContent: 'center' },
+  chipScroll: { flexDirection: 'row', paddingVertical: 4 },
+  chip: { backgroundColor: theme.colors.surface_container, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: theme.colors.outline },
+  chipSelected: { backgroundColor: theme.colors.primary_container, borderColor: theme.colors.primary },
+  chipText: { color: theme.colors.on_surface_variant, fontSize: 14, fontFamily: theme.fonts.medium },
+  chipTextSelected: { color: '#FFF', fontFamily: theme.fonts.bold },
   saveButton: { backgroundColor: theme.colors.primary_container, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 12 },
   saveButtonText: { color: '#FFF', fontSize: 18, fontFamily: theme.fonts.bold },
 });
