@@ -45,14 +45,16 @@ export function useIntervals(dayId?: number) {
   const addInterval = async (data: Omit<Interval, 'id' | 'sync_status' | 'ordem' | 'valor_total' | 'valor_hora'>) => {
     try {
       const db = await getDatabase();
-      const now = Date.now();
+      const timestamp = Date.now();
       
       // Calculate derived fields
       const horas = data.fim ? calculateDuration(data.inicio, data.fim) : 0;
       
       // Get current valor_hora for client
       const dayRes = await db.getFirstAsync<any>('SELECT data FROM dias WHERE id = ?', [data.dia_id]);
-      const dateStr = dayRes?.data || new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      const dateStr = dayRes?.data || todayStr;
       const anoMes = dateStr.substring(0, 7); // YYYY-MM
 
       const rateRes = await db.getFirstAsync<any>(
@@ -69,13 +71,13 @@ export function useIntervals(dayId?: number) {
       const result = await db.runAsync(
         `INSERT INTO intervalos (dia_id, cliente_id, ordem, inicio, fim, anotacoes, valor_hora, valor_total, sync_status, updated_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.dia_id, data.cliente_id, ordem, data.inicio, data.fim || null, data.anotacoes || null, valorHora, valorTotal, 'pending_create', now]
+        [data.dia_id, data.cliente_id, ordem, data.inicio, data.fim || null, data.anotacoes || null, valorHora, valorTotal, 'pending_create', timestamp]
       );
 
       // Log to sync_queue
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['intervalos', result.lastInsertRowId, 'CREATE', JSON.stringify({ ...data, ordem, valorHora, valorTotal }), now]
+        ['intervalos', result.lastInsertRowId, 'CREATE', JSON.stringify({ ...data, ordem, valorHora, valorTotal }), timestamp]
       );
 
       await fetchIntervals();

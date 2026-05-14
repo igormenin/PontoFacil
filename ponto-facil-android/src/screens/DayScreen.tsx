@@ -11,7 +11,11 @@ import { useAuthStore } from '../store/useAuthStore';
 const { width } = Dimensions.get('window');
 
 export default function DayScreen({ route, navigation }: any) {
-  const date = route?.params?.date || new Date().toISOString().split('T')[0];
+  const getTodayStr = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+  };
+  const date = route?.params?.date || getTodayStr();
   const { getOrCreateDay } = useDays();
   const [dayRecord, setDayRecord] = useState<DayRecord | null>(null);
   const { intervals, loading, addInterval, deleteInterval } = useIntervals(dayRecord?.id);

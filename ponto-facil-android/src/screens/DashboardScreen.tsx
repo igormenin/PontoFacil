@@ -40,7 +40,8 @@ export default function DashboardScreen() {
   const isOffline = netInfo.isConnected === false;
 
   const loadDashboardData = React.useCallback(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
     getOrCreateDay(today).then(day => {
       setDayId(day.id);
       refreshIntervals();
@@ -84,7 +85,8 @@ export default function DashboardScreen() {
   }, [performSync, refreshMonths, refreshIntervals]);
 
   const navigateToDay = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
     navigation.navigate('Day', { date: today });
   };
 
@@ -159,19 +161,36 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Andamento Mensal</Text>
         <View style={styles.chartCard}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartScroll}>
-            {summary.chartData?.map((data, index) => {
-              const maxHours = Math.max(8, ...summary.chartData.map(d => d.hours));
-              const heightPercent = (data.hours / maxHours) * 100;
+            {(() => {
+              const maxHours = Math.max(summary.dailyMeta || 8, ...summary.chartData.map(d => d.hours));
+              const goalLineHeight = (summary.dailyMeta / maxHours) * 120;
               return (
-                <View key={index} style={styles.barContainer}>
-                  <Text style={styles.barValue}>{data.hours > 0 ? data.hours.toFixed(1) : ''}</Text>
+                <>
+                  <View 
+                    style={[
+                      styles.goalLine, 
+                      { bottom: goalLineHeight + 18 } 
+                    ]} 
+                  />
+                  {summary.chartData?.map((data, index) => {
+                    const heightPercent = (data.hours / maxHours) * 100;
+                    return (
+                      <View key={index} style={styles.barContainer}>
+                  <Text style={styles.barValue}>
+                    {data.hours > 0 
+                      ? `${Math.floor(data.hours).toString().padStart(2, '0')}:${Math.round((data.hours % 1) * 60).toString().padStart(2, '0')}` 
+                      : ''}
+                  </Text>
                   <View style={styles.barBackground}>
                     <View style={[styles.barFill, { height: `${heightPercent}%` }]} />
                   </View>
                   <Text style={styles.barLabel}>{data.day.toString().padStart(2, '0')}</Text>
-                </View>
+                      </View>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
             {(!summary.chartData || summary.chartData.length === 0) && (
               <Text style={styles.emptyText}>Nenhum dado para exibir no momento.</Text>
             )}
@@ -187,16 +206,30 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>
-            {user?.leitor ? 'Modo de visualização. Registros aparecem aqui conforme sincronizados.' : 'Nenhum intervalo registrado hoje.'}
-          </Text>
-          {!user?.leitor && (
-            <TouchableOpacity style={styles.addButton} onPress={navigateToDay}>
-              <Text style={styles.addButtonText}>Registrar Agora</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {intervals.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>
+              {user?.leitor ? 'Modo de visualização. Registros aparecem aqui conforme sincronizados.' : 'Nenhum intervalo registrado hoje.'}
+            </Text>
+            {!user?.leitor && (
+              <TouchableOpacity style={styles.addButton} onPress={navigateToDay}>
+                <Text style={styles.addButtonText}>Registrar Agora</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          intervals.slice(0, 5).map((item) => (
+            <View key={item.id} style={styles.intervalCard}>
+              <View style={styles.intervalInfo}>
+                <Text style={styles.intervalClient}>{item.cliente_nome || 'Cliente avulso'}</Text>
+                <Text style={styles.intervalTime}>{item.inicio} — {item.fim || 'Em aberto'}</Text>
+              </View>
+              <Text style={styles.intervalDuration}>
+                {item.inicio && item.fim ? `${calculateDuration(item.inicio, item.fim).toFixed(2)}h` : '...'}
+              </Text>
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -378,15 +411,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   chartScroll: {
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 40,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
   barContainer: {
     alignItems: 'center',
-    marginRight: 16,
-    width: 28,
+    marginRight: 4,
+    width: 18,
   },
   barBackground: {
     height: 120,
@@ -407,9 +440,59 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.medium,
   },
   barValue: {
-    fontSize: 9,
-    color: theme.colors.primary,
+    fontSize: 10,
     fontFamily: theme.fonts.bold,
-    marginBottom: 4,
+    color: theme.colors.secondary,
+    marginBottom: 12,
+    transform: [{ rotate: '-90deg' }],
+    width: 40,
+    textAlign: 'center',
+    position: 'absolute',
+    top: -28,
+  },
+  intervalCard: {
+    backgroundColor: theme.colors.surface_container_lowest,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#460045',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+  },
+  intervalInfo: {
+    flex: 1,
+  },
+  intervalClient: {
+    fontSize: 16,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.on_surface,
+    marginBottom: 2,
+  },
+  intervalTime: {
+    fontSize: 13,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.on_surface_variant,
+  },
+  intervalDuration: {
+    fontSize: 14,
+    fontFamily: theme.fonts.black,
+    color: theme.colors.primary,
+    marginLeft: 16,
+  },
+  goalLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    opacity: 0.3,
+    zIndex: 0,
   },
 });

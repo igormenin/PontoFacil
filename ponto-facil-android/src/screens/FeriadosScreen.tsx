@@ -22,7 +22,8 @@ export default function FeriadosScreen() {
 
   const handleAdd = async () => {
     if (nome.trim()) {
-      await addFeriado(dataObj.toISOString().split('T')[0], nome, fixo ? 1 : 0, tipo);
+      const dateStr = `${dataObj.getFullYear()}-${(dataObj.getMonth() + 1).toString().padStart(2, '0')}-${dataObj.getDate().toString().padStart(2, '0')}`;
+      await addFeriado(dateStr, nome, fixo ? 1 : 0, tipo);
       setNome('');
       setDataObj(new Date());
       setTipo('NACIONAL');

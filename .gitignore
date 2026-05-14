@@ -1,5 +1,6 @@
 # AGENT
 .agent/
+.claude/
 logs/
 *.log
 agkit_mcp_prompt.json

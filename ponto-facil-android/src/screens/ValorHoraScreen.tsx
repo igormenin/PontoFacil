@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { Plus, X, DollarSign, Trash2, ArrowLeft } from 'lucide-react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -11,7 +11,10 @@ export default function ValorHoraScreen() {
   const route = useRoute<any>();
   const { clienteId, clienteNome } = route.params || {};
 
-  const { valores, addValor, deleteValor } = useValorHora(clienteId);
+  const parsedClienteId = clienteId ? Number(clienteId) : undefined;
+  const validClienteId = parsedClienteId && !isNaN(parsedClienteId) ? parsedClienteId : undefined;
+
+  const { valores, loading, addValor, deleteValor } = useValorHora(validClienteId);
   
   const [modalVisible, setModalVisible] = useState(false);
   const [valorStr, setValorStr] = useState('');
@@ -63,17 +66,24 @@ export default function ValorHoraScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={valores}
-        renderItem={renderValor}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Nenhum valor cadastrado para este cliente.</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Buscando valores...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={valores}
+          renderItem={renderValor}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Nenhum valor cadastrado para este cliente.</Text>
+            </View>
+          }
+        />
+      )}
 
       <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Plus color="#FFF" size={32} />
@@ -136,4 +146,6 @@ const styles = StyleSheet.create({
   input: { backgroundColor: theme.colors.surface_container, borderRadius: 16, padding: 16, color: theme.colors.on_surface, fontSize: 16, fontFamily: theme.fonts.regular },
   saveButton: { backgroundColor: theme.colors.primary_container, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 12 },
   saveButtonText: { color: '#FFF', fontSize: 18, fontFamily: theme.fonts.bold },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, color: theme.colors.secondary, fontFamily: theme.fonts.medium },
 });

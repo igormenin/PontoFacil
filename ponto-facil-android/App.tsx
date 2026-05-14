@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { 
   useFonts, 
   Inter_300Light, 
@@ -65,8 +66,10 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppNavigator />
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <AppNavigator />
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

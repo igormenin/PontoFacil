@@ -15,6 +15,7 @@ export interface MonthSummary {
   progressPercent: number;
   estimativa: number;
   chartData: DailyChartData[];
+  dailyMeta: number;
 }
 
 export function useMonths() {
@@ -26,7 +27,8 @@ export function useMonths() {
     expectedHours: 0,
     progressPercent: 0,
     estimativa: 0,
-    chartData: []
+    chartData: [],
+    dailyMeta: 8
   });
   const [loading, setLoading] = useState(true);
 
@@ -108,8 +110,16 @@ export function useMonths() {
           }
         }
 
-        if (day.tipo === 'UTIL') workingDays++;
-        if (day.horas_meta) dailyMeta = day.horas_meta;
+        if (day.tipo && day.tipo.toUpperCase() === 'UTIL') workingDays++;
+        if (day.horas_meta && day.horas_meta > 0) dailyMeta = day.horas_meta;
+      }
+      
+      // If we found days but no UTIL days, and it's a util month, fallback to 22
+      if (workingDays === 0 && days.length > 0) {
+        workingDays = days.filter(d => {
+          const dayOfWeek = new Date(d.data + 'T12:00:00').getDay();
+          return dayOfWeek !== 0 && dayOfWeek !== 6; // Not Sunday or Saturday
+        }).length || 22;
       }
 
       // Fetch estimated value from meses table
@@ -117,9 +127,47 @@ export function useMonths() {
         'SELECT estimativa, valor_hora FROM meses WHERE ano_mes = ?',
         [anoMes]
       );
-      const estimativa = (mesRecord?.estimativa || 0) * (mesRecord?.valor_hora || 0);
+      
+      let valorHora = mesRecord?.valor_hora || 0;
+      
+      // Fallback: try to get from history if zero
+      if (valorHora === 0) {
+        const historyRecord = await db.getFirstAsync<any>(
+          'SELECT valor FROM valor_hora_historico WHERE mes_inicio <= ? ORDER BY mes_inicio DESC LIMIT 1',
+          [anoMes]
+        );
+        valorHora = historyRecord?.valor || 0;
+      }
+      
+      // Ultra Fallback: Get ANY valor_hora from history if still zero
+      if (valorHora === 0) {
+        const anyHistory = await db.getFirstAsync<any>(
+          'SELECT valor FROM valor_hora_historico ORDER BY updated_at DESC LIMIT 1'
+        );
+        valorHora = anyHistory?.valor || 0;
+      }
+
+      // Final Fallback: Get from any month record
+      if (valorHora === 0) {
+        const anyMes = await db.getFirstAsync<any>(
+          'SELECT valor_hora FROM meses WHERE valor_hora > 0 LIMIT 1'
+        );
+        valorHora = anyMes?.valor_hora || 0;
+      }
+
+      // Ultra Final Fallback: Get from any interval record
+      if (valorHora === 0) {
+        const anyInterval = await db.getFirstAsync<any>(
+          'SELECT valor_hora FROM intervalos WHERE valor_hora > 0 ORDER BY id DESC LIMIT 1'
+        );
+        valorHora = anyInterval?.valor_hora || 0;
+      }
 
       const expectedHours = workingDays * dailyMeta;
+      
+      // If mesRecord has a direct estimativa (value), use it. 
+      // Otherwise, calculate based on expectedHours * valorHora
+      const estimativa = mesRecord?.estimativa ? (mesRecord.estimativa * valorHora) : (expectedHours * valorHora);
       const progressPercent = expectedHours > 0 ? (hoursTotal / expectedHours) * 100 : 0;
 
       setSummary({
@@ -129,7 +177,8 @@ export function useMonths() {
         expectedHours,
         progressPercent,
         estimativa,
-        chartData
+        chartData,
+        dailyMeta
       });
     } catch (error) {
       console.error('Error fetching month data:', error);

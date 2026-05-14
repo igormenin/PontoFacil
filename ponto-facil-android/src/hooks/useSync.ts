@@ -164,7 +164,9 @@ export function useSync() {
         const items = records as any[];
         console.log(`[Sync] Processing ${items.length} records for ${remoteTable}`);
         for (const remote of items) {
-          const serverId = remote[`${remoteTable.substring(0, 3)}_id`] ?? null;
+          let idPrefix = remoteTable.substring(0, 3);
+          if (remoteTable === 'valor_hora_base') idPrefix = 'vhb';
+          const serverId = remote[`${idPrefix}_id`] ?? null;
           
           if (remote.deleted_at) {
             try {
