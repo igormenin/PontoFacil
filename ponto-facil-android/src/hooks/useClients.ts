@@ -3,10 +3,10 @@ import { getDatabase } from '../database/db';
 
 export interface Client {
   id: number;
-  cli_id?: number | null;
-  cli_nome: string;
-  cli_cnpj?: string | null;
-  cli_ativo: boolean;
+  cliId?: number | null;
+  cliNome: string;
+  cliCnpj?: string | null;
+  cliAtivo: boolean;
   sync_status: 'synced' | 'pending_create' | 'pending_update' | 'pending_delete';
 }
 
@@ -18,10 +18,10 @@ export function useClients() {
     setLoading(true);
     try {
       const db = await getDatabase();
-      const result = await db.getAllAsync<any>('SELECT * FROM cliente ORDER BY cli_nome');
+      const result = await db.getAllAsync<any>('SELECT * FROM cliente ORDER BY cliNome');
       const mapped = result.map(row => ({
         ...row,
-        cli_ativo: !!row.cli_ativo
+        cliAtivo: !!row.cliAtivo
       }));
       setClients(mapped);
     } catch (error) {
@@ -37,14 +37,14 @@ export function useClients() {
       const now = Date.now();
       
       const result = await db.runAsync(
-        'INSERT INTO cliente (cli_nome, cli_cnpj, cli_ativo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO cliente (cliNome, cliCnpj, cliAtivo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?)',
         [nome, cnpj || null, 1, 'pending_create', now]
       );
 
       // Log to sync_queue
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['cliente', result.lastInsertRowId, 'CREATE', JSON.stringify({ cli_nome: nome, cli_cnpj: cnpj }), now]
+        ['cliente', result.lastInsertRowId, 'CREATE', JSON.stringify({ cliNome: nome, cliCnpj: cnpj }), now]
       );
 
       await fetchClients();
@@ -60,13 +60,13 @@ export function useClients() {
       const db = await getDatabase();
       const now = Date.now();
       
-      const client = await db.getFirstAsync<any>('SELECT cli_id FROM cliente WHERE id = ?', [id]);
+      const client = await db.getFirstAsync<any>('SELECT cliId FROM cliente WHERE id = ?', [id]);
       
       await db.runAsync('DELETE FROM cliente WHERE id = ?', [id]);
       
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['cliente', id, client?.cli_id || null, 'DELETE', now]
+        ['cliente', id, client?.cliId || null, 'DELETE', now]
       );
 
       await fetchClients();

@@ -4,10 +4,10 @@ import { getDatabase } from '../database/db';
 export interface Feriado {
   id: number;
   server_id?: number | null;
-  fer_data: string;
-  fer_nome: string;
-  fer_tipo?: string;
-  fer_fixo: number; // 0 or 1
+  ferData: string;
+  ferNome: string;
+  ferTipo?: string;
+  ferFixo: number; // 0 or 1
   sync_status: string;
 }
 
@@ -20,7 +20,7 @@ export function useFeriados() {
     try {
       const db = await getDatabase();
       const result = await db.getAllAsync<Feriado>(
-        'SELECT * FROM feriado ORDER BY fer_data ASC'
+        'SELECT * FROM feriado ORDER BY ferData ASC'
       );
       setFeriados(result);
     } catch (error) {
@@ -35,13 +35,13 @@ export function useFeriados() {
       const db = await getDatabase();
       const now = Date.now();
       const result = await db.runAsync(
-        'INSERT INTO feriado (fer_data, fer_nome, fer_tipo, fer_fixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO feriado (ferData, ferNome, ferTipo, ferFixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
         [data, nome, tipo, fixo, 'pending_create', now]
       );
       
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['feriado', result.lastInsertRowId, 'CREATE', JSON.stringify({ fer_data: data, fer_nome: nome, fer_tipo: tipo, fer_fixo: fixo }), now]
+        ['feriado', result.lastInsertRowId, 'CREATE', JSON.stringify({ ferData: data, ferNome: nome, ferTipo: tipo, ferFixo: fixo }), now]
       );
 
       await fetchFeriados();

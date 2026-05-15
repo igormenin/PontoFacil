@@ -61,8 +61,8 @@ export default function ValorHoraScreen() {
           <DollarSign color={theme.colors.primary_container} size={24} />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>R$ {item.vhb_valor.toFixed(2)} /h</Text>
-          <Text style={styles.cardSubtitle}>Vigência desde: {item.vhb_data_inicio}</Text>
+          <Text style={styles.cardTitle}>R$ {item.vhValor.toFixed(2)} /h</Text>
+          <Text style={styles.cardSubtitle}>Vigência desde: {item.vhMesInicio}</Text>
         </View>
       </View>
     </Swipeable>
@@ -126,7 +126,7 @@ export default function ValorHoraScreen() {
             <TouchableOpacity style={styles.saveButton} onPress={handleAdd}>
               <Text style={styles.saveButtonText}>Salvar Vigência</Text>
             </TouchableOpacity>
-          </View>
+          </div>
         </View>
       </Modal>
     </View>

@@ -4,16 +4,16 @@ import { calculateDuration } from '../utils/calcHoras';
 
 export interface Interval {
   id: number;
-  int_id?: number | null;
-  int_dia_id: number;
-  int_cli_id: number;
-  cliente_nome?: string;
-  int_ordem: number;
-  int_inicio: string;
-  int_fim?: string | null;
-  int_anotacoes?: string | null;
-  int_valor_hora?: number;
-  int_valor_total?: number;
+  intId?: number | null;
+  intDiaId: number;
+  intCliId: number;
+  clienteNome?: string;
+  intOrdem: number;
+  intInicio: string;
+  intFim?: string | null;
+  intAnotacoes?: string | null;
+  intValorHora?: number;
+  intValorTotal?: number;
   sync_status: string;
 }
 
@@ -27,11 +27,11 @@ export function useIntervals(dayId?: number) {
     try {
       const db = await getDatabase();
       const result = await db.getAllAsync<any>(
-        `SELECT i.*, c.cli_nome as cliente_nome 
+        `SELECT i.*, c.cliNome as clienteNome 
          FROM intervalo i 
-         LEFT JOIN cliente c ON i.int_cli_id = c.id 
-         WHERE i.int_dia_id = ? 
-         ORDER BY i.int_ordem`,
+         LEFT JOIN cliente c ON i.intCliId = c.id 
+         WHERE i.intDiaId = ? 
+         ORDER BY i.intOrdem`,
         [dayId]
       );
       setIntervals(result);
@@ -42,42 +42,42 @@ export function useIntervals(dayId?: number) {
     }
   }, [dayId]);
 
-  const addInterval = async (data: { int_dia_id: number; int_cli_id: number; int_inicio: string; int_fim: string; int_anotacoes: string }) => {
+  const addInterval = async (data: { intDiaId: number; intCliId: number; intInicio: string; intFim: string; intAnotacoes: string }) => {
     try {
       const db = await getDatabase();
       const timestamp = Date.now();
       
       // Calculate derived fields
-      const horas = data.int_fim ? calculateDuration(data.int_inicio, data.int_fim) : 0;
+      const horas = data.intFim ? calculateDuration(data.intInicio, data.intFim) : 0;
       
       // Get current valor_hora for client
-      const dayRes = await db.getFirstAsync<any>('SELECT dia_data FROM dia WHERE id = ?', [data.int_dia_id]);
+      const dayRes = await db.getFirstAsync<any>('SELECT diaData FROM dia WHERE id = ?', [data.intDiaId]);
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-      const dateStr = dayRes?.dia_data || todayStr;
+      const dateStr = dayRes?.diaData || todayStr;
       const anoMes = dateStr.substring(0, 7); // YYYY-MM
 
       const rateRes = await db.getFirstAsync<any>(
-        'SELECT vhb_valor FROM valor_hora_base WHERE vhb_cli_id = ? AND vhb_data_inicio <= ? ORDER BY vhb_data_inicio DESC LIMIT 1',
-        [data.int_cli_id, anoMes]
+        'SELECT vhValor FROM valor_hora WHERE vhCliId = ? AND vhMesInicio <= ? ORDER BY vhMesInicio DESC LIMIT 1',
+        [data.intCliId, anoMes]
       );
-      const valorHora = rateRes?.vhb_valor || 0;
+      const valorHora = rateRes?.vhValor || 0;
       const valorTotal = horas * valorHora;
 
       // Determine order
-      const countRes = await db.getFirstAsync<any>('SELECT COUNT(*) as count FROM intervalo WHERE int_dia_id = ?', [data.int_dia_id]);
+      const countRes = await db.getFirstAsync<any>('SELECT COUNT(*) as count FROM intervalo WHERE intDiaId = ?', [data.intDiaId]);
       const ordem = (countRes?.count || 0) + 1;
 
       const result = await db.runAsync(
-        `INSERT INTO intervalo (int_dia_id, int_cli_id, int_ordem, int_inicio, int_fim, int_anotacoes, int_valor_hora, int_valor_total, sync_status, updated_at) 
+        `INSERT INTO intervalo (intDiaId, intCliId, intOrdem, intInicio, intFim, intAnotacoes, intValorHora, intValorTotal, sync_status, updated_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.int_dia_id, data.int_cli_id, ordem, data.int_inicio, data.int_fim || null, data.int_anotacoes || null, valorHora, valorTotal, 'pending_create', timestamp]
+        [data.intDiaId, data.intCliId, ordem, data.intInicio, data.intFim || null, data.intAnotacoes || null, valorHora, valorTotal, 'pending_create', timestamp]
       );
 
       // Log to sync_queue
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['intervalo', result.lastInsertRowId, 'CREATE', JSON.stringify({ ...data, int_ordem: ordem, int_valor_hora: valorHora, int_valor_total: valorTotal }), timestamp]
+        ['intervalo', result.lastInsertRowId, 'CREATE', JSON.stringify({ ...data, intOrdem: ordem, intValorHora: valorHora, intValorTotal: valorTotal }), timestamp]
       );
 
       await fetchIntervals();
@@ -93,14 +93,14 @@ export function useIntervals(dayId?: number) {
       const db = await getDatabase();
       const now = Date.now();
 
-      const record = await db.getFirstAsync<any>('SELECT int_id FROM intervalo WHERE id = ?', [id]);
+      const record = await db.getFirstAsync<any>('SELECT intId FROM intervalo WHERE id = ?', [id]);
 
       await db.runAsync('DELETE FROM intervalo WHERE id = ?', [id]);
 
       // Log to sync_queue
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['intervalo', id, record?.int_id || null, 'DELETE', now]
+        ['intervalo', id, record?.intId || null, 'DELETE', now]
       );
 
       await fetchIntervals();

@@ -57,32 +57,32 @@ export default function ReportsScreen() {
              </View>
              
              <View style={styles.monthGrid}>
-               <TouchableOpacity 
-                  onPress={() => {
-                    if (selectedMonth === 0) {
-                      setSelectedMonth(11);
-                      setSelectedYear(selectedYear - 1);
-                    } else {
-                      setSelectedMonth(selectedMonth - 1);
-                    }
-                  }}
-                  style={styles.adjustButton}
-                >
-                  <Text style={styles.adjustButtonText}>Anterior</Text>
-                </TouchableOpacity>
                 <TouchableOpacity 
-                  onPress={() => {
-                    if (selectedMonth === 11) {
-                      setSelectedMonth(0);
-                      setSelectedYear(selectedYear + 1);
-                    } else {
-                      setSelectedMonth(selectedMonth + 1);
-                    }
-                  }}
-                  style={styles.adjustButton}
-                >
-                  <Text style={styles.adjustButtonText}>Próximo</Text>
-                </TouchableOpacity>
+                   onPress={() => {
+                     if (selectedMonth === 0) {
+                       setSelectedMonth(11);
+                       setSelectedYear(selectedYear - 1);
+                     } else {
+                       setSelectedMonth(selectedMonth - 1);
+                     }
+                   }}
+                   style={styles.adjustButton}
+                 >
+                   <Text style={styles.adjustButtonText}>Anterior</Text>
+                 </TouchableOpacity>
+                 <TouchableOpacity 
+                   onPress={() => {
+                     if (selectedMonth === 11) {
+                       setSelectedMonth(0);
+                       setSelectedYear(selectedYear + 1);
+                     } else {
+                       setSelectedMonth(selectedMonth + 1);
+                     }
+                   }}
+                   style={styles.adjustButton}
+                 >
+                   <Text style={styles.adjustButtonText}>Próximo</Text>
+                 </TouchableOpacity>
              </View>
           </View>
         </View>
@@ -103,7 +103,7 @@ export default function ReportsScreen() {
                 onPress={() => setSelectedClientId(client.id)}
               >
                 <Text style={[styles.clientChipText, selectedClientId === client.id && styles.clientChipTextActive]}>
-                  {client.cli_nome}
+                  {client.cliNome}
                 </Text>
               </TouchableOpacity>
             ))}

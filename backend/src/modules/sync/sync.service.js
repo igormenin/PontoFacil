@@ -1,4 +1,5 @@
 import { pool } from '../../config/database.js';
+import { keysToSnake, keysToCamel } from '../../utils/mapper.js';
 
 const getPkName = (table) => {
   const map = {
@@ -35,9 +36,12 @@ export const syncService = {
         }
 
         if (operation === 'CREATE' || operation === 'UPDATE') {
+          // Ensure payload is mapped to snake_case for the database
+          const snakePayload = keysToSnake(payload);
+
           // Fix for dia_mes_id null issue
-          if (table === 'dia' && !payload.dia_mes_id && payload.dia_data) {
-             const [anoStr, mesStr] = payload.dia_data.split('-');
+          if (table === 'dia' && !snakePayload.dia_mes_id && snakePayload.dia_data) {
+             const [anoStr, mesStr] = snakePayload.dia_data.split('-');
              const ano = parseInt(anoStr, 10);
              const mesNum = parseInt(mesStr, 10);
              
@@ -46,18 +50,18 @@ export const syncService = {
                [userId, ano, mesNum]
              );
              if (mesResult.rows.length > 0) {
-               payload.dia_mes_id = mesResult.rows[0].mes_id;
+               snakePayload.dia_mes_id = mesResult.rows[0].mes_id;
              } else {
                const insertMes = await client.query(
                  `INSERT INTO mes (usu_id, mes_ano, mes_mes, updated_at) VALUES ($1, $2, $3, NOW()) RETURNING mes_id`,
                  [userId, ano, mesNum]
                );
-               payload.dia_mes_id = insertMes.rows[0].mes_id;
+               snakePayload.dia_mes_id = insertMes.rows[0].mes_id;
              }
           }
 
-          const columns = Object.keys(payload);
-          const values = Object.values(payload);
+          const columns = Object.keys(snakePayload);
+          const values = Object.values(snakePayload);
           
           // Add technical metadata
           columns.push('usu_id', 'device_id', 'local_id', 'updated_at');
@@ -179,7 +183,8 @@ export const syncService = {
           ORDER BY ${pk} ASC
         `;
         const res = await client.query(query, params);
-        changes[table] = res.rows;
+        // Convert to camelCase before sending back to mobile
+        changes[table] = keysToCamel(res.rows);
         
         if (res.rows.length > 0) {
           const tableMaxId = Math.max(...res.rows.map(r => r[pk]));

@@ -34,8 +34,8 @@ export default function DayScreen({ route, navigation }: any) {
   }, [loadDay]);
 
   const totalHoras = intervals.reduce((acc, curr) => {
-    if (curr.int_inicio && curr.int_fim) {
-      return acc + calculateDuration(curr.int_inicio, curr.int_fim);
+    if (curr.intInicio && curr.intFim) {
+      return acc + calculateDuration(curr.intInicio, curr.intFim);
     }
     return acc;
   }, 0);
@@ -43,7 +43,7 @@ export default function DayScreen({ route, navigation }: any) {
   const handleAddInterval = async (data: any) => {
     if (dayRecord) {
       try {
-        await addInterval({ ...data, int_dia_id: dayRecord.id });
+        await addInterval({ ...data, intDiaId: dayRecord.id });
         setModalVisible(false);
       } catch (error) {
         console.error(error);
@@ -69,10 +69,10 @@ export default function DayScreen({ route, navigation }: any) {
       <View style={styles.intervalCard}>
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.clientName}>{item.cliente_nome || 'Cliente avulso'}</Text>
+            <Text style={styles.clientName}>{item.clienteNome || 'Cliente avulso'}</Text>
             <View style={styles.timeRow}>
               <Clock size={12} color={theme.colors.secondary} />
-              <Text style={styles.timeRange}>{item.int_inicio} — {item.int_fim || 'Em aberto'}</Text>
+              <Text style={styles.timeRange}>{item.intInicio} — {item.intFim || 'Em aberto'}</Text>
             </View>
           </View>
           {!isLeitor && (
@@ -82,15 +82,15 @@ export default function DayScreen({ route, navigation }: any) {
           )}
         </View>
         
-        {item.int_anotacoes ? (
+        {item.intAnotacoes ? (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesText}>{item.int_anotacoes}</Text>
+            <Text style={styles.notesText}>{item.intAnotacoes}</Text>
           </View>
         ) : null}
         
         <View style={styles.cardFooter}>
            <Text style={styles.durationText}>
-              {item.int_inicio && item.int_fim ? `${calculateDuration(item.int_inicio, item.int_fim).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} horas` : 'Contabilizando...'}
+              {item.intInicio && item.intFim ? `${calculateDuration(item.intInicio, item.intFim).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} horas` : 'Contabilizando...'}
            </Text>
            {item.sync_status !== 'synced' && (
              <View style={styles.syncIndicator} />
@@ -119,7 +119,7 @@ export default function DayScreen({ route, navigation }: any) {
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.heroNumber}>{dayRecord?.dia_horas_meta || 8}</Text>
+          <Text style={styles.heroNumber}>{dayRecord?.diaHorasMeta || 8}</Text>
           <Text style={styles.summaryLabel}>META DO DIA</Text>
         </View>
       </View>

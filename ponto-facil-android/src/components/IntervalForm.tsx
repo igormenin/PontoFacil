@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import { theme } from '../theme/theme';
 
 interface IntervalFormProps {
-  onSubmit: (data: { int_cli_id: number; int_inicio: string; int_fim: string; int_anotacoes: string }) => void;
+  onSubmit: (data: { intCliId: number; intInicio: string; intFim: string; intAnotacoes: string }) => void;
   onCancel: () => void;
 }
 
@@ -51,7 +51,7 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
       Alert.alert('Horário Inválido', 'O horário de fim não pode ser anterior ao horário de início.');
       return;
     }
-    onSubmit({ int_cli_id: clientId, int_inicio: formatTime(inicioDate), int_fim: formatTime(fimDate), int_anotacoes: anotacoes });
+    onSubmit({ intCliId: clientId, intInicio: formatTime(inicioDate), intFim: formatTime(fimDate), intAnotacoes: anotacoes });
   };
 
   return (
@@ -69,7 +69,7 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
               onPress={() => setClientId(client.id)}
             >
               <Text style={[styles.clientChipText, clientId === client.id && styles.clientChipTextSelected]}>
-                {client.cli_nome}
+                {client.cliNome}
               </Text>
             </TouchableOpacity>
           ))}

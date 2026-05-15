@@ -44,7 +44,7 @@ export function useMonths() {
     try {
       // 1. Fetch days for this month to aggregate
       const days = await db.getAllAsync<any>(
-        "SELECT * FROM dia WHERE dia_data LIKE ? || '-%'",
+        "SELECT * FROM dia WHERE diaData LIKE ? || '-%'",
         [anoMes]
       );
 
@@ -76,22 +76,22 @@ export function useMonths() {
       for (const day of days) {
         // Calculate totals from intervals for this day
         const dayIntervals = await db.getAllAsync<any>(
-          'SELECT SUM(int_valor_total) as valTotal FROM intervalo WHERE int_dia_id = ?',
+          'SELECT SUM(intValorTotal) as valTotal FROM intervalo WHERE intDiaId = ?',
           [day.id]
         );
 
         valueTotal += dayIntervals[0]?.valTotal || 0;
         
         const intervals = await db.getAllAsync<any>(
-          'SELECT int_inicio, int_fim FROM intervalo WHERE int_dia_id = ?',
+          'SELECT intInicio, intFim FROM intervalo WHERE intDiaId = ?',
           [day.id]
         );
         
         let dayMinutes = 0;
         for (const int of intervals) {
-          if (int.int_inicio && int.int_fim) {
-            const [h1, m1] = int.int_inicio.split(':').map(Number);
-            const [h2, m2] = int.int_fim.split(':').map(Number);
+          if (int.intInicio && int.intFim) {
+            const [h1, m1] = int.intInicio.split(':').map(Number);
+            const [h2, m2] = int.intFim.split(':').map(Number);
             dayMinutes += (h2 * 60 + m2) - (h1 * 60 + m1);
           }
         }
@@ -99,8 +99,8 @@ export function useMonths() {
         const dayHours = dayMinutes / 60;
         hoursTotal += dayHours;
 
-        if (day.dia_data) {
-          const dayNumberMatch = day.dia_data.split('-')[2];
+        if (day.diaData) {
+          const dayNumberMatch = day.diaData.split('-')[2];
           if (dayNumberMatch) {
             const dNum = parseInt(dayNumberMatch, 10);
             const chartItem = chartData.find(c => c.day === dNum);
@@ -110,64 +110,64 @@ export function useMonths() {
           }
         }
 
-        if (day.dia_tipo && day.dia_tipo.toUpperCase() === 'UTIL') workingDays++;
-        if (day.dia_horas_meta && day.dia_horas_meta > 0) dailyMeta = day.dia_horas_meta;
+        if (day.diaTipo && day.diaTipo.toUpperCase() === 'UTIL') workingDays++;
+        if (day.diaHorasMeta && day.diaHorasMeta > 0) dailyMeta = day.diaHorasMeta;
       }
       
       // If we found days but no UTIL days, and it's a util month, fallback to 22
       if (workingDays === 0 && days.length > 0) {
         workingDays = days.filter(d => {
-          const dayOfWeek = new Date(d.dia_data + 'T12:00:00').getDay();
+          const dayOfWeek = new Date(d.diaData + 'T12:00:00').getDay();
           return dayOfWeek !== 0 && dayOfWeek !== 6; // Not Sunday or Saturday
         }).length || 22;
       }
 
       // Fetch estimated value from mes table
       const mesRecord = await db.getFirstAsync<any>(
-        'SELECT mes_estimativa, mes_valor_hora FROM mes WHERE mes_ano_mes = ?',
+        'SELECT mesEstimativa, mesValorHora FROM mes WHERE mesAnoMes = ?',
         [anoMes]
       );
       
-      let valorHora = mesRecord?.mes_valor_hora || 0;
+      let valorHora = mesRecord?.mesValorHora || 0;
       
       // Fallback: try to get from history if zero
       if (valorHora === 0) {
         const historyRecord = await db.getFirstAsync<any>(
-          'SELECT vhb_valor FROM valor_hora_base WHERE vhb_data_inicio <= ? ORDER BY vhb_data_inicio DESC LIMIT 1',
+          'SELECT vhValor FROM valor_hora WHERE vhMesInicio <= ? ORDER BY vhMesInicio DESC LIMIT 1',
           [anoMes]
         );
-        valorHora = historyRecord?.vhb_valor || 0;
+        valorHora = historyRecord?.vhValor || 0;
       }
       
-      // Ultra Fallback: Get ANY vhb_valor from history if still zero
+      // Ultra Fallback: Get ANY vhValor from history if still zero
       if (valorHora === 0) {
         const anyHistory = await db.getFirstAsync<any>(
-          'SELECT vhb_valor FROM valor_hora_base ORDER BY updated_at DESC LIMIT 1'
+          'SELECT vhValor FROM valor_hora ORDER BY updated_at DESC LIMIT 1'
         );
-        valorHora = anyHistory?.vhb_valor || 0;
+        valorHora = anyHistory?.vhValor || 0;
       }
 
       // Final Fallback: Get from any month record
       if (valorHora === 0) {
         const anyMes = await db.getFirstAsync<any>(
-          'SELECT mes_valor_hora FROM mes WHERE mes_valor_hora > 0 LIMIT 1'
+          'SELECT mesValorHora FROM mes WHERE mesValorHora > 0 LIMIT 1'
         );
-        valorHora = anyMes?.mes_valor_hora || 0;
+        valorHora = anyMes?.mesValorHora || 0;
       }
 
       // Ultra Final Fallback: Get from any interval record
       if (valorHora === 0) {
         const anyInterval = await db.getFirstAsync<any>(
-          'SELECT int_valor_hora FROM intervalo WHERE int_valor_hora > 0 ORDER BY id DESC LIMIT 1'
+          'SELECT intValorHora FROM intervalo WHERE intValorHora > 0 ORDER BY id DESC LIMIT 1'
         );
-        valorHora = anyInterval?.int_valor_hora || 0;
+        valorHora = anyInterval?.intValorHora || 0;
       }
 
       const expectedHours = workingDays * dailyMeta;
       
       // If mesRecord has a direct estimativa (value), use it. 
       // Otherwise, calculate based on expectedHours * valorHora
-      const estimativa = mesRecord?.mes_estimativa ? (mesRecord.mes_estimativa * valorHora) : (expectedHours * valorHora);
+      const estimativa = mesRecord?.mesEstimativa ? (mesRecord.mesEstimativa * valorHora) : (expectedHours * valorHora);
       const progressPercent = expectedHours > 0 ? (hoursTotal / expectedHours) * 100 : 0;
 
       setSummary({

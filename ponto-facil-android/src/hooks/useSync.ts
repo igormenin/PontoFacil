@@ -14,8 +14,8 @@ const TABLE_MAP: Record<string, string> = {
   'intervalos': 'intervalo',
   'meses': 'mes',
   'feriados': 'feriado',
-  'valor_hora_historico': 'valor_hora_base',
-  'valores_hora_base': 'valor_hora_base'
+  'valor_hora_historico': 'valor_hora',
+  'valores_hora_base': 'valor_hora'
 };
 
 export function useSync() {
@@ -33,7 +33,7 @@ export function useSync() {
       // 1. PUSH PHASE - Skip if reader
       if (!isLeitor) {
         try {
-          const pushTables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base'];
+          const pushTables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora'];
           
           for (const table of pushTables) {
             const pendingMutations = await db.getAllAsync<any>(
@@ -48,22 +48,22 @@ export function useSync() {
                 
                 // Final adjustment for push (resolve foreign keys)
                 if (table === 'intervalo') {
-                  const dia = await db.getFirstAsync<any>('SELECT dia_id FROM dia WHERE id = ?', [payload.int_dia_id]);
-                  const cli = await db.getFirstAsync<any>('SELECT cli_id FROM cliente WHERE id = ?', [payload.int_cli_id]);
-                  if (!dia?.dia_id) continue; // Wait for parent to sync
-                  payload.int_dia_id = dia.dia_id;
-                  payload.int_cli_id = cli?.cli_id || null;
-                } else if (table === 'valor_hora_base') {
-                  const cli = await db.getFirstAsync<any>('SELECT cli_id FROM cliente WHERE id = ?', [payload.vhb_cli_id]);
-                  if (!cli?.cli_id) continue;
-                  payload.vhb_cli_id = cli.cli_id;
-                  if (payload.vhb_data_inicio && payload.vhb_data_inicio.length === 7) {
-                    payload.vhb_data_inicio += '-01';
+                  const dia = await db.getFirstAsync<any>('SELECT diaId FROM dia WHERE id = ?', [payload.intDiaId]);
+                  const cli = await db.getFirstAsync<any>('SELECT cliId FROM cliente WHERE id = ?', [payload.intCliId]);
+                  if (!dia?.diaId) continue; // Wait for parent to sync
+                  payload.intDiaId = dia.diaId;
+                  payload.intCliId = cli?.cliId || null;
+                } else if (table === 'valor_hora') {
+                  const cli = await db.getFirstAsync<any>('SELECT cliId FROM cliente WHERE id = ?', [payload.vhCliId]);
+                  if (!cli?.cliId) continue;
+                  payload.vhCliId = cli.cliId;
+                  if (payload.vhMesInicio && payload.vhMesInicio.length === 7) {
+                    payload.vhMesInicio += '-01';
                   }
                 }
 
                 mutations.push({
-                  table: table === 'valor_hora_base' ? 'valor_hora_historico' : table, // Backward compatibility with backend plural/old
+                  table: table === 'valor_hora' ? 'valor-hora' : table, // Match backend singular endpoint
                   operation: m.operation,
                   localId: m.local_id,
                   serverId: m.server_id,
@@ -75,8 +75,8 @@ export function useSync() {
                 const { results } = await pushSync(mutations);
                 for (const res of results) {
                   if (res.status === 'success' && res.serverId) {
-                    const idPrefix = table.includes('valor_hora') ? 'vhb' : table.substring(0, 3);
-                    const serverIdField = `${idPrefix}_id`;
+                    const idPrefix = table === 'valor_hora' ? 'vh' : table.substring(0, 3);
+                    const serverIdField = `${idPrefix}Id`;
                     
                     await db.runAsync(
                       `UPDATE ${table} SET ${serverIdField} = ?, sync_status = 'synced' WHERE id = ?`,
@@ -108,12 +108,12 @@ export function useSync() {
         if (items.length === 0) continue;
         
         pullCount += items.length;
-        const idPrefix = table.includes('valor_hora') ? 'vhb' : table.substring(0, 3);
-        const serverIdField = `${idPrefix}_id`;
+        const idPrefix = table === 'valor_hora' ? 'vh' : table.substring(0, 3);
+        const serverIdField = `${idPrefix}Id`;
 
         for (const remote of items) {
           const serverId = remote[serverIdField] || remote.id;
-          if (remote.deleted_at) {
+          if (remote.deletedAt) {
             await db.runAsync(`DELETE FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
             continue;
           }
@@ -121,22 +121,22 @@ export function useSync() {
           const existing = await db.getFirstAsync<any>(`SELECT id FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
           
           // Generic column mapper
-          const columns = Object.keys(remote).filter(k => k !== 'id' && k !== 'created_at' && k !== 'updated_at' && k !== 'deleted_at');
+          const columns = Object.keys(remote).filter(k => k !== 'id' && k !== 'createdAt' && k !== 'updatedAt' && k !== 'deletedAt' && k !== 'intervalos');
           
           // Resolve Foreign Keys on Pull
           if (table === 'intervalo') {
-            const localDia = await db.getFirstAsync<any>('SELECT id FROM dia WHERE dia_id = ?', [remote.int_dia_id]);
-            const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cli_id = ?', [remote.int_cli_id]);
-            if (localDia) remote.int_dia_id = localDia.id;
-            if (localCli) remote.int_cli_id = localCli.id;
-          } else if (table === 'valor_hora_base') {
-            const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cli_id = ?', [remote.vhb_cli_id]);
-            if (localCli) remote.vhb_cli_id = localCli.id;
-            if (remote.vhb_data_inicio) remote.vhb_data_inicio = remote.vhb_data_inicio.substring(0, 7);
-          } else if (table === 'dia' && remote.dia_data) {
-            remote.dia_data = remote.dia_data.split('T')[0];
-          } else if (table === 'feriado' && remote.fer_data) {
-            remote.fer_data = remote.fer_data.split('T')[0];
+            const localDia = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaId = ?', [remote.intDiaId]);
+            const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [remote.intCliId]);
+            if (localDia) remote.intDiaId = localDia.id;
+            if (localCli) remote.intCliId = localCli.id;
+          } else if (table === 'valor_hora') {
+            const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [remote.vhCliId]);
+            if (localCli) remote.vhCliId = localCli.id;
+            if (remote.vhMesInicio) remote.vhMesInicio = remote.vhMesInicio.substring(0, 7);
+          } else if (table === 'dia' && remote.diaData) {
+            remote.diaData = remote.diaData.split('T')[0];
+          } else if (table === 'feriado' && remote.ferData) {
+            remote.ferData = remote.ferData.split('T')[0];
           }
 
           const values = columns.map(k => remote[k]);

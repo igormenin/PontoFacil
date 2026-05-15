@@ -68,7 +68,7 @@ export default function DashboardScreen() {
   }, [loadDashboardData]);
 
   const totalHorasHjObj = intervals.reduce((acc, curr) => {
-    return curr.int_fim ? acc + calculateDuration(curr.int_inicio, curr.int_fim) : acc;
+    return curr.intFim ? acc + calculateDuration(curr.intInicio, curr.intFim) : acc;
   }, 0);
 
   const horasFormatado = `${Math.floor(totalHorasHjObj).toString().padStart(2, '0')}:${Math.round((totalHorasHjObj % 1) * 60).toString().padStart(2, '0')}`;
@@ -106,7 +106,7 @@ export default function DashboardScreen() {
       )}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Olá, {user?.nome?.split(' ')[0] || 'Usuário'}</Text>
+          <Text style={styles.greeting}>Olá, {user?.usuNome?.split(' ')[0] || user?.nome?.split(' ')[0] || 'Usuário'}</Text>
           <View style={styles.statusRow}>
             <Text style={styles.date}>{todayStr}</Text>
             {syncing && (
@@ -221,11 +221,11 @@ export default function DashboardScreen() {
           intervals.slice(0, 5).map((item) => (
             <View key={item.id} style={styles.intervalCard}>
               <View style={styles.intervalInfo}>
-                <Text style={styles.intervalClient}>{item.cliente_nome || 'Cliente avulso'}</Text>
-                <Text style={styles.intervalTime}>{item.int_inicio} — {item.int_fim || 'Em aberto'}</Text>
+                <Text style={styles.intervalClient}>{item.clienteNome || 'Cliente avulso'}</Text>
+                <Text style={styles.intervalTime}>{item.intInicio} — {item.intFim || 'Em aberto'}</Text>
               </View>
               <Text style={styles.intervalDuration}>
-                {item.int_inicio && item.int_fim ? `${calculateDuration(item.int_inicio, item.int_fim).toFixed(2)}h` : '...'}
+                {item.intInicio && item.intFim ? `${calculateDuration(item.intInicio, item.intFim).toFixed(2)}h` : '...'}
               </Text>
             </View>
           ))

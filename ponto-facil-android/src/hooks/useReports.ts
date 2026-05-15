@@ -19,7 +19,7 @@ export function useReports() {
 
     // 1. Fetch days
     const days = await db.getAllAsync<any>(
-      "SELECT * FROM dia WHERE dia_data LIKE ? || '-%' ORDER BY dia_data ASC",
+      "SELECT * FROM dia WHERE diaData LIKE ? || '-%' ORDER BY diaData ASC",
       [anoMes]
     );
 
@@ -29,11 +29,11 @@ export function useReports() {
 
     for (const day of days) {
       // 2. Fetch intervals for day, potentially filtered by client
-      let intervalsQuery = 'SELECT i.*, c.cli_nome as cliente_nome FROM intervalo i LEFT JOIN cliente c ON i.int_cli_id = c.id WHERE int_dia_id = ?';
+      let intervalsQuery = 'SELECT i.*, c.cliNome as clienteNome FROM intervalo i LEFT JOIN cliente c ON i.intCliId = c.id WHERE intDiaId = ?';
       let params: any[] = [day.id];
 
       if (clientId) {
-        intervalsQuery += ' AND i.int_cli_id = ?';
+        intervalsQuery += ' AND i.intCliId = ?';
         params.push(clientId);
       }
 
@@ -45,19 +45,19 @@ export function useReports() {
       let dayValue = 0;
 
       const reportIntervals = intervals.map(int => {
-        const dur = int.int_inicio && int.int_fim ? calculateDuration(int.int_inicio, int.int_fim) : 0;
+        const dur = int.intInicio && int.intFim ? calculateDuration(int.intInicio, int.intFim) : 0;
         dayHours += dur;
-        dayValue += int.int_valor_total || 0;
+        dayValue += int.intValorTotal || 0;
         return {
-          inicio: int.int_inicio,
-          fim: int.int_fim,
-          cliente: int.cliente_nome || 'N/A',
-          valor: int.int_valor_total || 0
+          inicio: int.intInicio,
+          fim: int.intFim,
+          cliente: int.clienteNome || 'N/A',
+          valor: int.intValorTotal || 0
         };
       });
 
       reportDays.push({
-        date: new Date(day.dia_data + 'T12:00:00').toLocaleDateString('pt-BR'),
+        date: new Date(day.diaData + 'T12:00:00').toLocaleDateString('pt-BR'),
         totalHours: dayHours,
         totalValue: dayValue,
         intervals: reportIntervals
@@ -70,12 +70,12 @@ export function useReports() {
     // Get specific client name if filtered
     let clientName = undefined;
     if (clientId) {
-      const client = await db.getFirstAsync<any>('SELECT cli_nome FROM cliente WHERE id = ?', [clientId]);
-      clientName = client?.cli_nome;
+      const client = await db.getFirstAsync<any>('SELECT cliNome FROM cliente WHERE id = ?', [clientId]);
+      clientName = client?.cliNome;
     }
 
     return {
-      userName: user?.nome || 'Usuário Ponto Fácil',
+      userName: user?.usuNome || user?.nome || 'Usuário Ponto Fácil',
       period: `${monthStr}/${year}`,
       clientName,
       days: reportDays,
