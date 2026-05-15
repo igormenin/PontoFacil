@@ -63,7 +63,7 @@ export function useSync() {
                 }
 
                 mutations.push({
-                  table: table === 'valor_hora' ? 'valor-hora' : table, // Match backend singular endpoint
+                  table: table === 'valor_hora' ? 'valor_hora_base' : table,
                   operation: m.operation,
                   localId: m.local_id,
                   serverId: m.server_id,

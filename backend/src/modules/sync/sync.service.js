@@ -42,19 +42,18 @@ export const syncService = {
           // Fix for dia_mes_id null issue
           if (table === 'dia' && !snakePayload.dia_mes_id && snakePayload.dia_data) {
              const [anoStr, mesStr] = snakePayload.dia_data.split('-');
-             const ano = parseInt(anoStr, 10);
-             const mesNum = parseInt(mesStr, 10);
+             const mesAnoMes = `${anoStr}-${mesStr}`;
              
              let mesResult = await client.query(
-               `SELECT mes_id FROM mes WHERE usu_id = $1 AND mes_ano = $2 AND mes_mes = $3`,
-               [userId, ano, mesNum]
+               `SELECT mes_id FROM mes WHERE usu_id = $1 AND mes_ano_mes = $2`,
+               [userId, mesAnoMes]
              );
              if (mesResult.rows.length > 0) {
                snakePayload.dia_mes_id = mesResult.rows[0].mes_id;
              } else {
                const insertMes = await client.query(
-                 `INSERT INTO mes (usu_id, mes_ano, mes_mes, updated_at) VALUES ($1, $2, $3, NOW()) RETURNING mes_id`,
-                 [userId, ano, mesNum]
+                 `INSERT INTO mes (usu_id, mes_ano_mes, updated_at) VALUES ($1, $2, NOW()) RETURNING mes_id`,
+                 [userId, mesAnoMes]
                );
                snakePayload.dia_mes_id = insertMes.rows[0].mes_id;
              }
