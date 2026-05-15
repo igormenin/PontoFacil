@@ -43,7 +43,7 @@ export default function DayScreen({ route, navigation }: any) {
   const handleAddInterval = async (data: any) => {
     if (dayRecord) {
       try {
-        await addInterval({ ...data, dia_id: dayRecord.id });
+        await addInterval({ ...data, int_dia_id: dayRecord.id });
         setModalVisible(false);
       } catch (error) {
         console.error(error);

@@ -5,6 +5,18 @@ import { pushSync, pullSync } from '../api/syncApi';
 import { useAuthStore } from '../store/useAuthStore';
 
 const LAST_SYNC_KEY = '@PontoFacil:lastSyncAt';
+const LAST_SYNC_SUMMARY = '@PontoFacil:lastSyncSummary';
+
+// Normalization map to handle plural from server or old names
+const TABLE_MAP: Record<string, string> = {
+  'clientes': 'cliente',
+  'dias': 'dia',
+  'intervalos': 'intervalo',
+  'meses': 'mes',
+  'feriados': 'feriado',
+  'valor_hora_historico': 'valor_hora_base',
+  'valores_hora_base': 'valor_hora_base'
+};
 
 export function useSync() {
   const [syncing, setSyncing] = useState(false);
@@ -21,9 +33,9 @@ export function useSync() {
       // 1. PUSH PHASE - Skip if reader
       if (!isLeitor) {
         try {
-          const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base'];
+          const pushTables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base'];
           
-          for (const table of tables) {
+          for (const table of pushTables) {
             const pendingMutations = await db.getAllAsync<any>(
               'SELECT * FROM sync_queue WHERE table_name = ? ORDER BY created_at ASC',
               [table]
@@ -51,7 +63,7 @@ export function useSync() {
                 }
 
                 mutations.push({
-                  table,
+                  table: table === 'valor_hora_base' ? 'valor_hora_historico' : table, // Backward compatibility with backend plural/old
                   operation: m.operation,
                   localId: m.local_id,
                   serverId: m.server_id,
@@ -63,10 +75,11 @@ export function useSync() {
                 const { results } = await pushSync(mutations);
                 for (const res of results) {
                   if (res.status === 'success' && res.serverId) {
-                    const idField = `${table.substring(0, 3)}_id`;
-                    const finalIdField = table === 'valor_hora_base' ? 'vhb_id' : idField;
+                    const idPrefix = table.includes('valor_hora') ? 'vhb' : table.substring(0, 3);
+                    const serverIdField = `${idPrefix}_id`;
+                    
                     await db.runAsync(
-                      `UPDATE ${table} SET ${finalIdField} = ?, sync_status = 'synced' WHERE id = ?`,
+                      `UPDATE ${table} SET ${serverIdField} = ?, sync_status = 'synced' WHERE id = ?`,
                       [res.serverId, res.localId]
                     );
                   }
@@ -86,9 +99,15 @@ export function useSync() {
       // 2. PULL PHASE
       const { changes, serverTime } = await pullSync(forceFullSync);
       const sanitize = (arr: any[]) => arr.map(v => v === undefined ? null : v);
+      
+      let pullCount = 0;
 
-      for (const [table, records] of Object.entries(changes)) {
+      for (const [rawTable, records] of Object.entries(changes)) {
+        const table = TABLE_MAP[rawTable] || rawTable;
         const items = records as any[];
+        if (items.length === 0) continue;
+        
+        pullCount += items.length;
         const idPrefix = table.includes('valor_hora') ? 'vhb' : table.substring(0, 3);
         const serverIdField = `${idPrefix}_id`;
 
@@ -101,7 +120,7 @@ export function useSync() {
 
           const existing = await db.getFirstAsync<any>(`SELECT id FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
           
-          // Generic column mapper (skipping id and timestamps that we manage locally)
+          // Generic column mapper
           const columns = Object.keys(remote).filter(k => k !== 'id' && k !== 'created_at' && k !== 'updated_at' && k !== 'deleted_at');
           
           // Resolve Foreign Keys on Pull
@@ -132,11 +151,17 @@ export function useSync() {
         }
       }
 
-      await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
+      const summary = `Sincronizado com sucesso! Recebidos ${pullCount} registros.`;
+      await AsyncStorage.multiSet([
+        [LAST_SYNC_KEY, serverTime],
+        [LAST_SYNC_SUMMARY, summary]
+      ]);
       return true;
     } catch (e: any) {
       console.error('Sync failed:', e);
-      setError(e.message || 'Erro na sincronização');
+      const errorMsg = e.response?.data?.error || e.message || 'Erro na sincronização';
+      setError(errorMsg);
+      await AsyncStorage.setItem(LAST_SYNC_SUMMARY, `ERRO: ${errorMsg}`);
       return false;
     } finally {
       setSyncing(false);
