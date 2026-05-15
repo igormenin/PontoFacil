@@ -4,10 +4,10 @@ import { getDatabase } from '../database/db';
 export interface Feriado {
   id: number;
   server_id?: number | null;
-  data: string;
-  nome: string;
-  tipo?: string;
-  fixo: number; // 0 or 1
+  fer_data: string;
+  fer_nome: string;
+  fer_tipo?: string;
+  fer_fixo: number; // 0 or 1
   sync_status: string;
 }
 
@@ -20,7 +20,7 @@ export function useFeriados() {
     try {
       const db = await getDatabase();
       const result = await db.getAllAsync<Feriado>(
-        'SELECT * FROM feriados ORDER BY data ASC'
+        'SELECT * FROM feriado ORDER BY fer_data ASC'
       );
       setFeriados(result);
     } catch (error) {
@@ -35,13 +35,13 @@ export function useFeriados() {
       const db = await getDatabase();
       const now = Date.now();
       const result = await db.runAsync(
-        'INSERT INTO feriados (data, nome, tipo, fixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO feriado (fer_data, fer_nome, fer_tipo, fer_fixo, sync_status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
         [data, nome, tipo, fixo, 'pending_create', now]
       );
       
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, operation, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['feriados', result.lastInsertRowId, 'CREATE', JSON.stringify({ data, nome, tipo, fixo }), now]
+        ['feriado', result.lastInsertRowId, 'CREATE', JSON.stringify({ fer_data: data, fer_nome: nome, fer_tipo: tipo, fer_fixo: fixo }), now]
       );
 
       await fetchFeriados();
@@ -56,13 +56,13 @@ export function useFeriados() {
       const db = await getDatabase();
       const now = Date.now();
       
-      const record = await db.getFirstAsync<any>('SELECT server_id FROM feriados WHERE id = ?', [id]);
+      const record = await db.getFirstAsync<any>('SELECT server_id FROM feriado WHERE id = ?', [id]);
       
-      await db.runAsync('DELETE FROM feriados WHERE id = ?', [id]);
+      await db.runAsync('DELETE FROM feriado WHERE id = ?', [id]);
       
       await db.runAsync(
         'INSERT INTO sync_queue (table_name, local_id, server_id, operation, created_at) VALUES (?, ?, ?, ?, ?)',
-        ['feriados', id, record?.server_id || null, 'DELETE', now]
+        ['feriado', id, record?.server_id || null, 'DELETE', now]
       );
 
       await fetchFeriados();

@@ -26,7 +26,7 @@ export default function DatabaseDebugScreen() {
       setSyncSummary(summary || 'Nenhum dado recebido ainda');
       
       const db = await getDatabase();
-      const tables = ['clientes', 'dias', 'intervalos', 'meses', 'feriados', 'valor_hora_historico', 'sync_queue'];
+      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base', 'sync_queue'];
       const results = [];
 
       for (const table of tables) {
@@ -84,11 +84,12 @@ export default function DatabaseDebugScreen() {
               const db = await getDatabase();
               // Executa tudo em uma única chamada para ser mais atômico no Android
               await db.execAsync(`
-                DELETE FROM intervalos;
-                DELETE FROM dias;
-                DELETE FROM clientes;
-                DELETE FROM meses;
-                DELETE FROM feriados;
+                DELETE FROM intervalo;
+                DELETE FROM dia;
+                DELETE FROM cliente;
+                DELETE FROM mes;
+                DELETE FROM feriado;
+                DELETE FROM valor_hora_base;
                 DELETE FROM sync_queue;
               `);
               

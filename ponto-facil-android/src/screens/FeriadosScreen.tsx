@@ -49,9 +49,9 @@ export default function FeriadosScreen() {
           <CalendarIcon color={theme.colors.primary_container} size={24} />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>{item.nome}</Text>
+          <Text style={styles.cardTitle}>{item.fer_nome}</Text>
           <Text style={styles.cardSubtitle}>
-            {item.data} • {item.tipo || 'NACIONAL'} {item.fixo === 1 ? '(Fixo)' : ''}
+            {item.fer_data} • {item.fer_tipo || 'NACIONAL'} {item.fer_fixo === 1 ? '(Fixo)' : ''}
           </Text>
         </View>
       </View>

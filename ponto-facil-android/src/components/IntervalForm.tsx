@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import { theme } from '../theme/theme';
 
 interface IntervalFormProps {
-  onSubmit: (data: { cliente_id: number; inicio: string; fim: string; anotacoes: string }) => void;
+  onSubmit: (data: { int_cli_id: number; int_inicio: string; int_fim: string; int_anotacoes: string }) => void;
   onCancel: () => void;
 }
 
@@ -24,25 +24,34 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
     d.setHours(12, 0, 0, 0);
     return d;
   });
+  const [anotacoes, setAnotacoes] = useState('');
   const [showInicioPicker, setShowInicioPicker] = useState(false);
   const [showFimPicker, setShowFimPicker] = useState(false);
-  const [anotacoes, setAnotacoes] = useState('');
+
+  // Auto-select first client when they load
+  React.useEffect(() => {
+    if (!clientId && clients.length > 0) {
+      setClientId(clients[0].id);
+    }
+  }, [clients, clientId]);
 
   const formatTime = (date: Date) => {
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
   const handleSave = () => {
-    if (clientId) {
-      const isFimBeforeInicio = fimDate.getHours() < inicioDate.getHours() || 
-        (fimDate.getHours() === inicioDate.getHours() && fimDate.getMinutes() < inicioDate.getMinutes());
-        
-      if (isFimBeforeInicio) {
-        Alert.alert('Horário Inválido', 'O horário de fim não pode ser anterior ao horário de início.');
-        return;
-      }
-      onSubmit({ cliente_id: clientId, inicio: formatTime(inicioDate), fim: formatTime(fimDate), anotacoes });
+    if (!clientId) {
+      Alert.alert('Atenção', 'Por favor, selecione um cliente.');
+      return;
     }
+    const isFimBeforeInicio = fimDate.getHours() < inicioDate.getHours() || 
+      (fimDate.getHours() === inicioDate.getHours() && fimDate.getMinutes() < inicioDate.getMinutes());
+      
+    if (isFimBeforeInicio) {
+      Alert.alert('Horário Inválido', 'O horário de fim não pode ser anterior ao horário de início.');
+      return;
+    }
+    onSubmit({ int_cli_id: clientId, int_inicio: formatTime(inicioDate), int_fim: formatTime(fimDate), int_anotacoes: anotacoes });
   };
 
   return (
@@ -60,7 +69,7 @@ export default function IntervalForm({ onSubmit, onCancel }: IntervalFormProps) 
               onPress={() => setClientId(client.id)}
             >
               <Text style={[styles.clientChipText, clientId === client.id && styles.clientChipTextSelected]}>
-                {client.nome}
+                {client.cli_nome}
               </Text>
             </TouchableOpacity>
           ))}

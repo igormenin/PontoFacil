@@ -20,8 +20,8 @@ export default function ClientsScreen() {
     if (!search.trim()) return clients;
     const lowerSearch = search.toLowerCase();
     return clients.filter(c => 
-      c.nome.toLowerCase().includes(lowerSearch) || 
-      (c.cnpj && c.cnpj.toLowerCase().includes(lowerSearch))
+      c.cli_nome.toLowerCase().includes(lowerSearch) || 
+      (c.cli_cnpj && c.cli_cnpj.toLowerCase().includes(lowerSearch))
     );
   }, [clients, search]);
 
@@ -48,14 +48,14 @@ export default function ClientsScreen() {
     <Swipeable renderRightActions={() => renderRightActions(item.id)}>
       <TouchableOpacity 
         style={styles.clientCard}
-        onPress={() => navigation.navigate('ValorHora', { clienteId: item.id, clienteNome: item.nome })}
+        onPress={() => navigation.navigate('ValorHora', { clienteId: item.id, clienteNome: item.cli_nome })}
       >
         <View style={styles.clientIcon}>
           <Briefcase color={theme.colors.primary_container} size={24} />
         </View>
         <View style={styles.clientInfo}>
-          <Text style={styles.clientName}>{item.nome}</Text>
-          <Text style={styles.clientCnpj}>{item.cnpj || 'Sem identificação'}</Text>
+          <Text style={styles.clientName}>{item.cli_nome}</Text>
+          <Text style={styles.clientCnpj}>{item.cli_cnpj || 'Sem identificação'}</Text>
         </View>
         <View style={[styles.badge, item.sync_status === 'synced' ? styles.badgeSynced : styles.badgePending]}>
           <Text style={[styles.badgeText, { color: item.sync_status === 'synced' ? '#03DAC6' : theme.colors.secondary }]}>

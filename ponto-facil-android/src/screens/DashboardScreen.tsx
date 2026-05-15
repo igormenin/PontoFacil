@@ -68,7 +68,7 @@ export default function DashboardScreen() {
   }, [loadDashboardData]);
 
   const totalHorasHjObj = intervals.reduce((acc, curr) => {
-    return curr.fim ? acc + calculateDuration(curr.inicio, curr.fim) : acc;
+    return curr.int_fim ? acc + calculateDuration(curr.int_inicio, curr.int_fim) : acc;
   }, 0);
 
   const horasFormatado = `${Math.floor(totalHorasHjObj).toString().padStart(2, '0')}:${Math.round((totalHorasHjObj % 1) * 60).toString().padStart(2, '0')}`;
@@ -133,7 +133,7 @@ export default function DashboardScreen() {
         />
         <DashboardCard
           title="Valor Executado"
-          value={`R$ ${summary.valueTotal.toFixed(2).replace('.', ',')}`}
+          value={`R$ ${summary.valueTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           color={theme.colors.secondary}
           backgroundColor={theme.colors.surface_container_lowest}
@@ -141,7 +141,7 @@ export default function DashboardScreen() {
         />
         <DashboardCard
           title="Valor Estimado"
-          value={`R$ ${summary.estimativa.toFixed(2).replace('.', ',')}`}
+          value={`R$ ${summary.estimativa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           color={theme.colors.primary_container}
           backgroundColor={theme.colors.surface_container_lowest}
@@ -222,10 +222,10 @@ export default function DashboardScreen() {
             <View key={item.id} style={styles.intervalCard}>
               <View style={styles.intervalInfo}>
                 <Text style={styles.intervalClient}>{item.cliente_nome || 'Cliente avulso'}</Text>
-                <Text style={styles.intervalTime}>{item.inicio} — {item.fim || 'Em aberto'}</Text>
+                <Text style={styles.intervalTime}>{item.int_inicio} — {item.int_fim || 'Em aberto'}</Text>
               </View>
               <Text style={styles.intervalDuration}>
-                {item.inicio && item.fim ? `${calculateDuration(item.inicio, item.fim).toFixed(2)}h` : '...'}
+                {item.int_inicio && item.int_fim ? `${calculateDuration(item.int_inicio, item.int_fim).toFixed(2)}h` : '...'}
               </Text>
             </View>
           ))

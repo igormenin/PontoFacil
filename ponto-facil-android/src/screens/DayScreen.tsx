@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import { Plus, Trash2, Clock, Calendar as CalendarIcon, ChevronLeft, MoreVertical } from 'lucide-react-native';
 import { useIntervals, Interval } from '../hooks/useIntervals';
 import { useDays, DayRecord } from '../hooks/useDays';
@@ -34,16 +34,21 @@ export default function DayScreen({ route, navigation }: any) {
   }, [loadDay]);
 
   const totalHoras = intervals.reduce((acc, curr) => {
-    if (curr.inicio && curr.fim) {
-      return acc + calculateDuration(curr.inicio, curr.fim);
+    if (curr.int_inicio && curr.int_fim) {
+      return acc + calculateDuration(curr.int_inicio, curr.int_fim);
     }
     return acc;
   }, 0);
 
   const handleAddInterval = async (data: any) => {
     if (dayRecord) {
-      await addInterval({ ...data, dia_id: dayRecord.id });
-      setModalVisible(false);
+      try {
+        await addInterval({ ...data, dia_id: dayRecord.id });
+        setModalVisible(false);
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Erro', 'Não foi possível salvar o lançamento.');
+      }
     }
   };
 
@@ -67,7 +72,7 @@ export default function DayScreen({ route, navigation }: any) {
             <Text style={styles.clientName}>{item.cliente_nome || 'Cliente avulso'}</Text>
             <View style={styles.timeRow}>
               <Clock size={12} color={theme.colors.secondary} />
-              <Text style={styles.timeRange}>{item.inicio} — {item.fim || 'Em aberto'}</Text>
+              <Text style={styles.timeRange}>{item.int_inicio} — {item.int_fim || 'Em aberto'}</Text>
             </View>
           </View>
           {!isLeitor && (
@@ -77,15 +82,15 @@ export default function DayScreen({ route, navigation }: any) {
           )}
         </View>
         
-        {item.anotacoes ? (
+        {item.int_anotacoes ? (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesText}>{item.anotacoes}</Text>
+            <Text style={styles.notesText}>{item.int_anotacoes}</Text>
           </View>
         ) : null}
         
         <View style={styles.cardFooter}>
            <Text style={styles.durationText}>
-              {item.inicio && item.fim ? `${calculateDuration(item.inicio, item.fim).toFixed(2)} horas` : 'Contabilizando...'}
+              {item.int_inicio && item.int_fim ? `${calculateDuration(item.int_inicio, item.int_fim).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} horas` : 'Contabilizando...'}
            </Text>
            {item.sync_status !== 'synced' && (
              <View style={styles.syncIndicator} />
@@ -114,7 +119,7 @@ export default function DayScreen({ route, navigation }: any) {
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.heroNumber}>{dayRecord?.horas_meta || 8}</Text>
+          <Text style={styles.heroNumber}>{dayRecord?.dia_horas_meta || 8}</Text>
           <Text style={styles.summaryLabel}>META DO DIA</Text>
         </View>
       </View>

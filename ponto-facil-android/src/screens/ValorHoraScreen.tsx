@@ -10,11 +10,25 @@ export default function ValorHoraScreen() {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { clienteId, clienteNome } = route.params || {};
+  const validClienteId = (clienteId !== undefined && clienteId !== null) ? Number(clienteId) : undefined;
 
-  const parsedClienteId = clienteId ? Number(clienteId) : undefined;
-  const validClienteId = parsedClienteId && !isNaN(parsedClienteId) ? parsedClienteId : undefined;
+  const { valores, loading, addValor, deleteValor } = useValorHora(validClienteId && !isNaN(validClienteId) ? validClienteId : undefined);
 
-  const { valores, loading, addValor, deleteValor } = useValorHora(validClienteId);
+  if (!validClienteId || isNaN(validClienteId)) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft color={theme.colors.primary} size={24} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Erro</Text>
+        </View>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>ID de cliente inválido.</Text>
+        </View>
+      </View>
+    );
+  }
   
   const [modalVisible, setModalVisible] = useState(false);
   const [valorStr, setValorStr] = useState('');
@@ -47,8 +61,8 @@ export default function ValorHoraScreen() {
           <DollarSign color={theme.colors.primary_container} size={24} />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>R$ {item.valor.toFixed(2)} /h</Text>
-          <Text style={styles.cardSubtitle}>Vigência desde: {item.mes_inicio}</Text>
+          <Text style={styles.cardTitle}>R$ {item.vhb_valor.toFixed(2)} /h</Text>
+          <Text style={styles.cardSubtitle}>Vigência desde: {item.vhb_data_inicio}</Text>
         </View>
       </View>
     </Swipeable>

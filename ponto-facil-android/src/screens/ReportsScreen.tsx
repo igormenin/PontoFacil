@@ -103,7 +103,7 @@ export default function ReportsScreen() {
                 onPress={() => setSelectedClientId(client.id)}
               >
                 <Text style={[styles.clientChipText, selectedClientId === client.id && styles.clientChipTextActive]}>
-                  {client.nome}
+                  {client.cli_nome}
                 </Text>
               </TouchableOpacity>
             ))}
