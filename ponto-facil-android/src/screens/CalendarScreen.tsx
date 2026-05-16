@@ -61,21 +61,27 @@ const MONTHS_BR = [
   const renderSummary = () => (
     <View style={styles.summaryContainer}>
       <View style={styles.summaryCard}>
-        <Clock size={16} color="#631660" />
+        <View style={styles.summaryHeader}>
+          <Clock size={12} color="#631660" />
+          <Text style={styles.summaryLabel} numberOfLines={1}>Horas</Text>
+        </View>
         <Text style={styles.summaryValue}>{summary.hoursTotal.toFixed(1)}h</Text>
-        <Text style={styles.summaryLabel}>Total Horas</Text>
       </View>
       
       <View style={styles.summaryCard}>
-        <DollarSign size={16} color="#631660" />
+        <View style={styles.summaryHeader}>
+          <DollarSign size={12} color="#631660" />
+          <Text style={styles.summaryLabel} numberOfLines={1}>Valor</Text>
+        </View>
         <Text style={styles.summaryValue}>R$ {summary.valueTotal.toFixed(2)}</Text>
-        <Text style={styles.summaryLabel}>Total Valor</Text>
       </View>
 
       <View style={styles.summaryCard}>
-        <TrendingUp size={16} color="#631660" />
+        <View style={styles.summaryHeader}>
+          <TrendingUp size={12} color="#631660" />
+          <Text style={styles.summaryLabel} numberOfLines={1}>Meta</Text>
+        </View>
         <Text style={styles.summaryValue}>{summary.progressPercent.toFixed(0)}%</Text>
-        <Text style={styles.summaryLabel}>Meta</Text>
       </View>
     </View>
   );
@@ -162,8 +168,8 @@ const styles = StyleSheet.create({
   },
   topSection: {
     backgroundColor: theme.colors.surface_container,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
@@ -205,9 +211,8 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
-    padding: 12,
+    padding: 10,
     borderRadius: 16,
-    alignItems: 'center',
     width: (width - 64) / 3,
     elevation: 2,
     shadowColor: '#460045',
@@ -215,17 +220,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+  },
   summaryValue: {
-    fontSize: normalize(15),
+    fontSize: normalize(13),
     fontFamily: theme.fonts.bold,
     color: theme.colors.on_surface,
-    marginVertical: 4,
   },
   summaryLabel: {
-    fontSize: normalize(9),
+    fontSize: normalize(8),
     color: theme.colors.on_surface_variant,
     textTransform: 'uppercase',
-    fontFamily: theme.fonts.regular,
+    fontFamily: theme.fonts.bold,
+    flex: 1,
   },
   calendarContainer: {
     flex: 1,

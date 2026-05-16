@@ -69,7 +69,6 @@ export default function ClientsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Meus Clientes</Text>
         <View style={styles.searchContainer}>
           <Search color="#50434D" size={20} />
           <TextInput 
@@ -162,8 +161,8 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   title: {
     fontSize: normalize(24),

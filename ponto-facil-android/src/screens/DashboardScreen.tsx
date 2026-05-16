@@ -25,8 +25,7 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
       </View>
       <Text 
         style={[styles.cardTitle, { fontFamily: theme.fonts.bold }]} 
-        numberOfLines={1} 
-        adjustsFontSizeToFit
+        numberOfLines={2} 
         allowFontScaling={false}
       >
         {title}
@@ -35,7 +34,6 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
     <Text 
       style={[styles.cardValue, { fontFamily: theme.fonts.black }]}
       numberOfLines={1}
-      adjustsFontSizeToFit
       allowFontScaling={false}
     >
       {value}
@@ -279,7 +277,7 @@ const styles = StyleSheet.create({
   },
   offlineText: {
     color: '#BA1A1A',
-    fontSize: 12,
+    fontSize: normalize(12),
     fontFamily: theme.fonts.bold,
   },
   header: {
@@ -346,13 +344,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    minHeight: 120,
-    justifyContent: 'space-between',
+    minHeight: normalize(95),
+    justifyContent: 'flex-start',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   iconContainer: {
     width: 36,
@@ -369,6 +367,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     flex: 1,
     flexWrap: 'wrap',
+    lineHeight: normalize(13),
   },
   cardValue: {
     color: '#1E1A22',
@@ -420,6 +419,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: theme.colors.on_primary,
     fontFamily: theme.fonts.bold,
+    fontSize: normalize(14),
   },
   chartSection: {
     paddingHorizontal: 24,

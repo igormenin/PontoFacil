@@ -77,9 +77,6 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Configurações</Text>
-      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
@@ -222,8 +219,8 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   title: {
     fontSize: normalize(24),

@@ -153,7 +153,7 @@ export default function FeriadosScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24, flexDirection: 'row', alignItems: 'center' },
+  header: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center' },
   backButton: { marginRight: 16 },
   title: { fontSize: normalize(24), fontFamily: theme.fonts.bold, color: theme.colors.primary },
   list: { paddingHorizontal: 16, paddingBottom: 100 },

@@ -190,8 +190,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
   emptyActionText: {
     color: '#631660',
     fontWeight: 'bold',
+    fontSize: normalize(14),
   },
   modalOverlay: {
     flex: 1,
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: normalize(20),
     fontWeight: 'bold',
     color: '#460045',
   },
