@@ -26,7 +26,7 @@ export default function DatabaseDebugScreen() {
       setSyncSummary(summary || 'Nenhum dado recebido ainda');
       
       const db = await getDatabase();
-      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora_base', 'sync_queue'];
+      const tables = ['cliente', 'dia', 'intervalo', 'mes', 'feriado', 'valor_hora', 'sync_queue'];
       const results = [];
 
       for (const table of tables) {
@@ -89,7 +89,7 @@ export default function DatabaseDebugScreen() {
                 DELETE FROM cliente;
                 DELETE FROM mes;
                 DELETE FROM feriado;
-                DELETE FROM valor_hora_base;
+                DELETE FROM valor_hora;
                 DELETE FROM sync_queue;
               `);
               

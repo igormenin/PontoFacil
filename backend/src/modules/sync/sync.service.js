@@ -81,27 +81,57 @@ export const syncService = {
           // If no row inserted (conflict), update exactly that row
           let finalRow = res.rows[0];
           if (!finalRow) {
-            const setClause = columns
-              .filter(c => !['local_id', 'device_id', 'usu_id'].includes(c))
-              .map((c, i) => `${c} = $${i + 1}`)
-              .join(', ');
+            const updateCols = columns.filter(c => !['local_id', 'device_id', 'usu_id', 'updated_at'].includes(c));
+            const updateVals = columns
+              .map((c, i) => ({ c, v: values[i] }))
+              .filter(item => !['local_id', 'device_id', 'usu_id', 'updated_at'].includes(item.c))
+              .map(item => item.v);
+            
+            const setClause = updateCols.map((c, i) => `${c} = $${i + 1}`).join(', ');
             
             const updateRes = await client.query(
               `UPDATE ${table} SET ${setClause}, updated_at = NOW() 
-               WHERE usu_id = $${columns.length + 1} AND device_id = $${columns.length + 2} AND local_id = $${columns.length + 3}
+               WHERE usu_id = $${updateCols.length + 1} AND device_id = $${updateCols.length + 2} AND local_id = $${updateCols.length + 3}
                RETURNING *`,
-              [...values.filter((_, i) => !['local_id', 'device_id', 'usu_id'].includes(columns[i])), userId, deviceId, localId]
+              [...updateVals, userId, deviceId, localId]
             );
             finalRow = updateRes.rows[0];
+          }
+
+          // Fallback: If still no row, it means a conflict happened on a BUSINESS unique key (like dia_data)
+          // instead of the technical key (device_id + local_id).
+          // We try to find that record and "claim" it for this device if it belongs to the same user.
+          if (!finalRow) {
+            let businessKey = null;
+            if (table === 'dia') businessKey = 'dia_data';
+            if (table === 'feriado') businessKey = 'fer_data';
+            if (table === 'mes') businessKey = 'mes_ano_mes';
+            if (table === 'valor_hora_base') businessKey = 'vh_data_inicio'; // Assuming this exists based on pattern
+
+            if (businessKey && snakePayload[businessKey]) {
+              const businessRes = await client.query(
+                `SELECT * FROM ${table} WHERE usu_id = $1 AND ${businessKey} = $2`,
+                [userId, snakePayload[businessKey]]
+              );
+              
+              if (businessRes.rows.length > 0) {
+                const existingRow = businessRes.rows[0];
+                // Update technical IDs to match this device for future syncs
+                const updateRes = await client.query(
+                  `UPDATE ${table} SET device_id = $1, local_id = $2, updated_at = NOW() 
+                   WHERE ${getPkName(table)} = $3 RETURNING *`,
+                  [deviceId, localId, existingRow[getPkName(table)]]
+                );
+                finalRow = updateRes.rows[0];
+              }
+            }
           }
 
           if (finalRow) {
             results.push({ localId, serverId: finalRow[getPkName(table)], status: 'success' });
           } else {
-            // This happens if the unique constraint hit was on a DIFFERENT constraint (e.g. dia_data)
-            // It means this device tried to insert a day that already exists from another device/user.
-            // For now, mark as error so the client knows it failed.
-            results.push({ localId, status: 'error', message: 'Conflict with existing unique record' });
+            // Still no row? This is a genuine error or conflict with another user's data
+            results.push({ localId, status: 'error', message: 'Record exists and could not be claimed' });
           }
         } else if (operation === 'DELETE') {
           await client.query(

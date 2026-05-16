@@ -72,7 +72,7 @@ Write-Host "`n2. Compilando APK via Gradle..." -ForegroundColor Cyan
 if (Test-Path "android") {
     cd android
     # Usar cmd /c para garantir que o gradlew rode corretamente no Windows
-    cmd /c ".\gradlew assembleRelease"
+    cmd /c ".\gradlew assembleDebug"
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERRO] Falha na compilacao do Gradle." -ForegroundColor Red
@@ -90,4 +90,4 @@ if (Test-Path "android") {
 cd ..
 
 Write-Host "`n--- FIM ---" -ForegroundColor Green
-Write-Host "Se tudo deu certo, seu APK estara em: ponto-facil-android\android\app\build\outputs\apk\release\"
+Write-Host "Se tudo deu certo, seu APK estara em: ponto-facil-android\android\app\build\outputs\apk\debug\"

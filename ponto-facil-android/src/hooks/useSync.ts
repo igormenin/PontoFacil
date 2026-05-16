@@ -15,7 +15,8 @@ const TABLE_MAP: Record<string, string> = {
   'meses': 'mes',
   'feriados': 'feriado',
   'valor_hora_historico': 'valor_hora',
-  'valores_hora_base': 'valor_hora'
+  'valores_hora_base': 'valor_hora',
+  'valor_hora_base': 'valor_hora'
 };
 
 export function useSync() {
@@ -46,20 +47,34 @@ export function useSync() {
               for (const m of pendingMutations) {
                 const payload = JSON.parse(m.payload || '{}');
                 
-                // Final adjustment for push (resolve foreign keys)
+                // Final adjustment for push (resolve foreign keys and map names)
                 if (table === 'intervalo') {
                   const dia = await db.getFirstAsync<any>('SELECT diaId FROM dia WHERE id = ?', [payload.intDiaId]);
-                  const cli = await db.getFirstAsync<any>('SELECT cliId FROM cliente WHERE id = ?', [payload.intCliId]);
-                  if (!dia?.diaId) continue; // Wait for parent to sync
+                  const cli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [payload.intCliId]);
+                  if (!dia?.diaId) continue;
                   payload.intDiaId = dia.diaId;
                   payload.intCliId = cli?.cliId || null;
                 } else if (table === 'valor_hora') {
                   const cli = await db.getFirstAsync<any>('SELECT cliId FROM cliente WHERE id = ?', [payload.vhCliId]);
                   if (!cli?.cliId) continue;
                   payload.vhCliId = cli.cliId;
-                  if (payload.vhMesInicio && payload.vhMesInicio.length === 7) {
-                    payload.vhMesInicio += '-01';
+                  
+                  // Map Mobile -> Server
+                  payload.vhDataInicio = payload.vhMesInicio;
+                  if (payload.vhDataInicio && payload.vhDataInicio.length === 7) {
+                    payload.vhDataInicio += '-01';
                   }
+                  delete payload.vhMesInicio;
+                  delete payload.vhAtivo; // Server doesn't have this
+                } else if (table === 'mes') {
+                  // Server only has mes_ano_mes and usu_id
+                  // Remove all local calculation columns before push
+                  const mesAnoMes = payload.mesAnoMes;
+                  Object.keys(payload).forEach(key => delete payload[key]);
+                  payload.mesAnoMes = mesAnoMes;
+                } else if (table === 'dia') {
+                  // Server doesn't have dia_horas_meta
+                  delete payload.diaHorasMeta;
                 }
 
                 mutations.push({
@@ -72,7 +87,9 @@ export function useSync() {
               }
 
               if (mutations.length > 0) {
+                console.log(`[Sync] Enviando requisição de PUSH para a tabela: ${table}`);
                 const { results } = await pushSync(mutations);
+                console.log(`[Sync] Resposta do PUSH recebida para a tabela ${table}:`, JSON.stringify(results, null, 2));
                 for (const res of results) {
                   if (res.status === 'success' && res.serverId) {
                     const idPrefix = table === 'valor_hora' ? 'vh' : table.substring(0, 3);
@@ -91,13 +108,17 @@ export function useSync() {
               }
             }
           }
-        } catch (pushErr) {
+        } catch (pushErr: any) {
+          console.error('[Sync] Erro crasso durante o PUSH:', pushErr.response?.data || pushErr.message);
           console.warn('[Sync] Push failed, proceeding to pull:', pushErr);
         }
       }
 
       // 2. PULL PHASE
+      console.log(`[Sync] Iniciando requisição de PULL...`);
       const { changes, serverTime } = await pullSync(forceFullSync);
+      console.log(`[Sync] Resposta do PULL recebida. ServerTime:`, serverTime);
+      console.log(`[Sync] Tabelas com alterações no PULL:`, Object.keys(changes));
       const sanitize = (arr: any[]) => arr.map(v => v === undefined ? null : v);
       
       let pullCount = 0;
@@ -120,8 +141,32 @@ export function useSync() {
 
           const existing = await db.getFirstAsync<any>(`SELECT id FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
           
-          // Generic column mapper
-          const columns = Object.keys(remote).filter(k => k !== 'id' && k !== 'createdAt' && k !== 'updatedAt' && k !== 'deletedAt' && k !== 'intervalos');
+          // Map Server -> Mobile names
+          if (remote.vhDataInicio) {
+            remote.vhMesInicio = remote.vhDataInicio.substring(0, 7);
+            delete remote.vhDataInicio;
+          }
+
+          // Generic column mapper - filter out server-only technical columns
+          const columns = Object.keys(remote).filter(k => 
+            k !== 'id' && 
+            k !== 'createdAt' && 
+            k !== 'updatedAt' && 
+            k !== 'deletedAt' && 
+            k !== 'intervalos' &&
+            k !== 'usuId' &&
+            k !== 'deviceId' &&
+            k !== 'localId' &&
+            k !== 'diaMesId' &&
+            k !== 'diaContaUtil' &&
+            k !== 'diaPodeHoras' &&
+            k !== 'diaHorasTotal' &&
+            k !== 'diaValorTotal' &&
+            k !== 'intHoras' &&
+            k !== 'intPago' &&
+            k !== 'mesDiasTrabalhados' &&
+            k !== 'mesValorTotal'
+          );
           
           // Resolve Foreign Keys on Pull
           if (table === 'intervalo') {
@@ -158,7 +203,8 @@ export function useSync() {
       ]);
       return true;
     } catch (e: any) {
-      console.error('Sync failed:', e);
+      console.error('[Sync] ERRO FATAL NA SINCRONIZAÇÃO:', e.response?.data || e.message);
+      console.error('Stack trace completo:', e);
       const errorMsg = e.response?.data?.error || e.message || 'Erro na sincronização';
       setError(errorMsg);
       await AsyncStorage.setItem(LAST_SYNC_SUMMARY, `ERRO: ${errorMsg}`);

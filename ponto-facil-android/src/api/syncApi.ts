@@ -3,8 +3,8 @@ import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Point to Render production API
-const API_URL = 'https://pontofacil-seven.vercel.app/api';
+// Point to Local API for debugging
+const API_URL = 'https://ponto-facil-backend.vercel.app/api';
 
 const syncApi = axios.create({
   baseURL: API_URL,
