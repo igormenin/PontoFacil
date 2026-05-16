@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { RefreshCw, Clock, ChevronRight, ShieldCheck, Mail, FileText, CalendarOff, Eye, LogOut, User } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -8,6 +8,8 @@ import { useSync } from '../hooks/useSync';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { theme } from '../theme/theme';
 import { getDatabase } from '../database/db';
+
+import { normalize } from '../utils/responsive';
 
 const LAST_SYNC_KEY = '@PontoFacil:lastSyncAt';
 
@@ -224,7 +226,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: normalize(24),
     color: theme.colors.primary,
     fontFamily: theme.fonts.bold,
   },
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: normalize(11),
     color: theme.colors.secondary,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -259,12 +261,12 @@ const styles = StyleSheet.create({
   },
   syncStatusLabel: {
     color: '#82737D',
-    fontSize: 10,
+    fontSize: normalize(9),
     fontWeight: 'bold',
   },
   syncStatusValue: {
     color: '#1E1A22',
-    fontSize: 18,
+    fontSize: normalize(17),
     fontWeight: 'bold',
     marginTop: 4,
   },
@@ -282,7 +284,7 @@ const styles = StyleSheet.create({
   },
   lastSyncText: {
     color: '#50434D',
-    fontSize: 12,
+    fontSize: normalize(11),
     marginLeft: 8,
   },
   syncButton: {
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
   },
   syncButtonText: {
     color: theme.colors.on_primary,
-    fontSize: 16,
+    fontSize: normalize(15),
     marginLeft: 12,
     fontFamily: theme.fonts.bold,
   },
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     color: theme.colors.on_surface,
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.medium,
   },
   menuItemRight: {
@@ -341,7 +343,7 @@ const styles = StyleSheet.create({
   menuItemValue: {
     color: '#82737D',
     marginRight: 8,
-    fontSize: 14,
+    fontSize: normalize(13),
   },
   footer: {
     marginTop: 40,
@@ -349,13 +351,13 @@ const styles = StyleSheet.create({
   },
   versionText: {
     color: '#631660',
-    fontSize: 10,
+    fontSize: normalize(9),
     fontWeight: 'bold',
     letterSpacing: 2,
   },
   versionNumber: {
     color: '#D4C1CD',
-    fontSize: 12,
+    fontSize: normalize(11),
     marginTop: 4,
   },
 });

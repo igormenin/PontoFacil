@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, AppState } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, AppState, ActivityIndicator } from 'react-native';
 import { Clock, TrendingUp, DollarSign, Calendar as CalendarIcon, RefreshCw, WifiOff } from 'lucide-react-native';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useMonths } from '../hooks/useMonths';
@@ -10,8 +10,9 @@ import { useDays } from '../hooks/useDays';
 import { useIntervals } from '../hooks/useIntervals';
 import { calculateDuration } from '../utils/calcHoras';
 import { theme } from '../theme/theme';
+import { getDatabase } from '../database/db';
 
-const { width } = Dimensions.get('window');
+import { normalize, screenWidth as width } from '../utils/responsive';
 
 const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPress }: any) => (
   <TouchableOpacity
@@ -22,9 +23,23 @@ const DashboardCard = ({ title, value, icon: Icon, color, backgroundColor, onPre
       <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
         <Icon size={20} color={color} />
       </View>
-      <Text style={[styles.cardTitle, { fontFamily: theme.fonts.bold }]}>{title}</Text>
+      <Text 
+        style={[styles.cardTitle, { fontFamily: theme.fonts.bold }]} 
+        numberOfLines={1} 
+        adjustsFontSizeToFit
+        allowFontScaling={false}
+      >
+        {title}
+      </Text>
     </View>
-    <Text style={[styles.cardValue, { fontFamily: theme.fonts.black }]}>{value}</Text>
+    <Text 
+      style={[styles.cardValue, { fontFamily: theme.fonts.black }]}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      allowFontScaling={false}
+    >
+      {value}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -276,12 +291,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greeting: {
-    fontSize: 28,
+    fontSize: normalize(24),
     color: theme.colors.primary,
     fontFamily: theme.fonts.bold,
   },
   date: {
-    fontSize: 16,
+    fontSize: normalize(15),
     color: theme.colors.on_surface_variant,
     marginTop: 4,
     fontFamily: theme.fonts.regular,
@@ -310,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   syncText: {
-    fontSize: 10,
+    fontSize: normalize(9),
     fontWeight: 'bold',
     color: '#631660',
     textTransform: 'uppercase',
@@ -322,15 +337,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   card: {
-    width: (width - 48) / 2,
+    width: (width - 60) / 2,
+    padding: 16,
     borderRadius: 20,
-    padding: 20,
     marginBottom: 16,
-    elevation: 2,
+    elevation: 4,
     shadowColor: '#460045',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    minHeight: 120,
+    justifyContent: 'space-between',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -347,7 +364,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: '#50434D',
-    fontSize: 11,
+    fontSize: normalize(11),
     fontWeight: '600',
     textTransform: 'uppercase',
     flex: 1,
@@ -355,7 +372,7 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     color: '#1E1A22',
-    fontSize: 22,
+    fontSize: normalize(20),
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -370,13 +387,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: normalize(18),
     color: theme.colors.primary,
     fontFamily: theme.fonts.bold,
   },
   seeAll: {
     color: theme.colors.secondary,
     fontFamily: theme.fonts.medium,
+    fontSize: normalize(13),
   },
   emptyState: {
     backgroundColor: '#F4EBF6',
@@ -386,7 +404,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: theme.colors.on_surface_variant,
-    fontSize: 16,
+    fontSize: normalize(14),
     textAlign: 'center',
     marginBottom: 20,
     fontFamily: theme.fonts.regular,
@@ -428,29 +446,29 @@ const styles = StyleSheet.create({
   },
   barContainer: {
     alignItems: 'center',
-    marginRight: 4,
-    width: 18,
+    marginRight: 6,
+    width: 24,
   },
   barBackground: {
-    height: 120,
-    width: 12,
+    height: 160,
+    width: 16,
     backgroundColor: '#F4EBF6',
-    borderRadius: 6,
+    borderRadius: 8,
     justifyContent: 'flex-end',
     marginBottom: 8,
   },
   barFill: {
     width: '100%',
     backgroundColor: theme.colors.primary,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   barLabel: {
-    fontSize: 10,
+    fontSize: normalize(10),
     color: '#82737D',
     fontFamily: theme.fonts.medium,
   },
   barValue: {
-    fontSize: 10,
+    fontSize: normalize(10),
     fontFamily: theme.fonts.bold,
     color: theme.colors.secondary,
     marginBottom: 12,
@@ -458,7 +476,7 @@ const styles = StyleSheet.create({
     width: 40,
     textAlign: 'center',
     position: 'absolute',
-    top: -28,
+    top: -30,
   },
   intervalCard: {
     backgroundColor: theme.colors.surface_container_lowest,
@@ -478,18 +496,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   intervalClient: {
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.bold,
     color: theme.colors.on_surface,
     marginBottom: 2,
   },
   intervalTime: {
-    fontSize: 13,
+    fontSize: normalize(12),
     fontFamily: theme.fonts.regular,
     color: theme.colors.on_surface_variant,
   },
   intervalDuration: {
-    fontSize: 14,
+    fontSize: normalize(14),
     fontFamily: theme.fonts.black,
     color: theme.colors.primary,
     marginLeft: 16,

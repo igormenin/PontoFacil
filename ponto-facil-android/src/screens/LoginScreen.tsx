@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Dimensions, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { LogIn, Lock, User, Clock, Fingerprint } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -7,7 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../store/useAuthStore';
 import syncApi from '../api/syncApi';
 
-const { width } = Dimensions.get('window');
+import { normalize } from '../utils/responsive';
 
 const SECURE_AUTH_KEY = 'user_auth_credentials';
 
@@ -257,8 +257,8 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 32,
-    padding: 32,
+    borderRadius: 24,
+    padding: normalize(24),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
@@ -287,13 +287,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: normalize(24),
     fontWeight: '900',
     color: '#1e1a22',
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: normalize(10),
     fontWeight: 'bold',
     color: '#82737d',
     marginTop: 4,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   rememberText: {
-    fontSize: 13,
+    fontSize: normalize(12),
     fontWeight: '700',
     color: '#82737d',
   },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontSize: 12,
+    fontSize: normalize(11),
     fontWeight: '900',
     color: '#82737d',
     textTransform: 'uppercase',
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee5f0',
     borderRadius: 16,
-    padding: 16,
-    fontSize: 16,
+    padding: normalize(14),
+    fontSize: normalize(15),
     fontWeight: '600',
     color: '#1e1a22',
   },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 14,
+    fontSize: normalize(13),
     letterSpacing: 1,
   }
 });

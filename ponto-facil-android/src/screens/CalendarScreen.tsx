@@ -1,11 +1,11 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList } from 'react-native';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, DollarSign, Clock, TrendingUp } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../theme/theme';
 
-const { width } = Dimensions.get('window');
+import { normalize, screenWidth as width } from '../utils/responsive';
 const COLUMN_WIDTH = (width - 48) / 7;
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
@@ -188,12 +188,12 @@ const styles = StyleSheet.create({
 
 
   monthName: {
-    fontSize: 22,
+    fontSize: normalize(20),
     fontFamily: theme.fonts.bold,
     color: theme.colors.primary,
   },
   yearName: {
-    fontSize: 14,
+    fontSize: normalize(13),
     color: theme.colors.on_surface_variant,
     marginTop: 2,
     fontFamily: theme.fonts.regular,
@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.bold,
     color: theme.colors.on_surface,
     marginVertical: 4,
   },
   summaryLabel: {
-    fontSize: 10,
+    fontSize: normalize(9),
     color: theme.colors.on_surface_variant,
     textTransform: 'uppercase',
     fontFamily: theme.fonts.regular,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   weekText: {
     width: COLUMN_WIDTH,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: normalize(11),
     fontFamily: theme.fonts.bold,
     color: theme.colors.primary_container,
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     height: 60,
   },
   dayText: {
-    fontSize: 16,
+    fontSize: normalize(15),
     color: theme.colors.on_surface,
     fontFamily: theme.fonts.medium,
   },

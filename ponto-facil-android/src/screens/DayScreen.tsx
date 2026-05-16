@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Plus, Trash2, Clock, Calendar as CalendarIcon, ChevronLeft, MoreVertical } from 'lucide-react-native';
 import { useIntervals, Interval } from '../hooks/useIntervals';
 import { useDays, DayRecord } from '../hooks/useDays';
@@ -8,7 +8,7 @@ import { calculateDuration } from '../utils/calcHoras';
 import { theme } from '../theme/theme';
 import { useAuthStore } from '../store/useAuthStore';
 
-const { width } = Dimensions.get('window');
+import { normalize } from '../utils/responsive';
 
 export default function DayScreen({ route, navigation }: any) {
   const getTodayStr = () => {
@@ -207,12 +207,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: theme.colors.primary,
-    fontSize: 24,
+    fontSize: normalize(20),
     fontFamily: theme.fonts.bold,
   },
   headerSubtitle: {
     color: theme.colors.on_surface_variant,
-    fontSize: 14,
+    fontSize: normalize(13),
     textTransform: 'capitalize',
     fontFamily: theme.fonts.regular,
   },
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#D4C1CD',
   },
   heroNumber: {
-    fontSize: 32,
+    fontSize: normalize(28),
     fontFamily: theme.fonts.black,
     color: theme.colors.primary,
   },
   summaryLabel: {
-    fontSize: 10,
+    fontSize: normalize(9),
     color: theme.colors.secondary,
     fontFamily: theme.fonts.bold,
     marginTop: 4,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   clientName: {
     color: theme.colors.on_surface,
-    fontSize: 18,
+    fontSize: normalize(16),
     fontFamily: theme.fonts.bold,
     marginBottom: 4,
   },
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   timeRange: {
     color: theme.colors.secondary,
-    fontSize: 14,
+    fontSize: normalize(13),
     fontFamily: theme.fonts.medium,
     marginLeft: 6,
   },
@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
   },
   notesText: {
     color: '#50434D',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: normalize(13),
+    lineHeight: normalize(18),
   },
   cardFooter: {
     flexDirection: 'row',
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   durationText: {
     color: theme.colors.on_surface_variant,
-    fontSize: 12,
+    fontSize: normalize(11),
     fontFamily: theme.fonts.bold,
     textTransform: 'uppercase',
   },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#82737D',
-    fontSize: 16,
+    fontSize: normalize(15),
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 40,

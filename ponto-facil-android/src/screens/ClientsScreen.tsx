@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { Plus, Search, X, Briefcase, Trash2, Edit2 } from 'lucide-react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { useClients } from '../hooks/useClients';
 import { theme } from '../theme/theme';
 
-const { width } = Dimensions.get('window');
+import { normalize } from '../utils/responsive';
 
 export default function ClientsScreen() {
   const navigation = useNavigation<any>();
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: normalize(24),
     color: theme.colors.primary,
     marginBottom: 16,
     fontFamily: theme.fonts.bold,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: theme.colors.on_surface,
     marginLeft: 12,
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.regular,
   },
   list: {
@@ -217,12 +217,12 @@ const styles = StyleSheet.create({
   },
   clientName: {
     color: theme.colors.on_surface,
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.bold,
   },
   clientCnpj: {
     color: theme.colors.on_surface_variant,
-    fontSize: 12,
+    fontSize: normalize(11),
     marginTop: 2,
     fontFamily: theme.fonts.regular,
   },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF0F7',
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: normalize(9),
     fontFamily: theme.fonts.bold,
     textTransform: 'uppercase',
   },
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: normalize(20),
     color: theme.colors.primary,
     fontFamily: theme.fonts.bold,
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 12,
+    fontSize: normalize(11),
     fontWeight: 'bold',
     color: '#631660',
     marginBottom: 8,
@@ -330,9 +330,9 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F4EBF6',
     borderRadius: 16,
-    padding: 16,
+    padding: normalize(14),
     color: '#1E1A22',
-    fontSize: 16,
+    fontSize: normalize(15),
   },
   saveButton: {
     backgroundColor: '#631660',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: normalize(16),
     fontWeight: 'bold',
   },
 });
