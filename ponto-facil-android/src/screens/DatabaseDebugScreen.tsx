@@ -10,6 +10,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { useAuthStore } from '../store/useAuthStore';
+import { normalize } from '../utils/responsive';
 
 export default function DatabaseDebugScreen() {
   const navigation = useNavigation();
@@ -163,7 +164,7 @@ export default function DatabaseDebugScreen() {
               <View style={styles.info}>
                 <Text style={styles.tableName}>{item.table}</Text>
                 {item.count === -1 ? (
-                  <Text style={[styles.countText, { color: 'red', fontSize: 10 }]}>{item.error || 'Erro ao consultar'}</Text>
+                  <Text style={[styles.countText, { color: 'red', fontSize: normalize(10) }]}>{item.error || 'Erro ao consultar'}</Text>
                 ) : (
                   <Text style={styles.countText}>{item.count} registro(s)</Text>
                 )}
@@ -175,11 +176,11 @@ export default function DatabaseDebugScreen() {
 
         <View style={{ marginTop: 24, padding: 16, backgroundColor: '#F4EBF6', borderRadius: 12 }}>
           <Text style={{ fontWeight: 'bold', color: '#631660', marginBottom: 8 }}>Diagnóstico de Sessão</Text>
-          <Text style={{ fontSize: 13, color: '#50434D' }}>Usuário: {user?.email || 'Não identificado'}</Text>
-          <Text style={{ fontSize: 13, color: '#50434D' }}>ID no Servidor: {user?.id || 'N/A'}</Text>
-          <Text style={{ fontSize: 11, color: '#50434D' }}>Token: {token ? `${token.substring(0, 15)}...` : 'N/A'}</Text>
-          <Text style={{ fontSize: 13, color: '#631660', marginTop: 8, fontWeight: '500' }}>Último Pull do Servidor:</Text>
-          <Text style={{ fontSize: 12, color: '#50434D' }}>{syncSummary}</Text>
+          <Text style={{ fontSize: normalize(13), color: '#50434D' }}>Usuário: {user?.email || 'Não identificado'}</Text>
+          <Text style={{ fontSize: normalize(13), color: '#50434D' }}>ID no Servidor: {user?.id || 'N/A'}</Text>
+          <Text style={{ fontSize: normalize(11), color: '#50434D' }}>Token: {token ? `${token.substring(0, 15)}...` : 'N/A'}</Text>
+          <Text style={{ fontSize: normalize(13), color: '#631660', marginTop: 8, fontWeight: '500' }}>Último Pull do Servidor:</Text>
+          <Text style={{ fontSize: normalize(12), color: '#50434D' }}>{syncSummary}</Text>
         </View>
 
         <TouchableOpacity 
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   exportBtn: { padding: 4 },
   title: {
     color: '#FFF',
-    fontSize: 20,
+    fontSize: normalize(18),
     fontFamily: theme.fonts.bold
   },
   content: { padding: 20 },
@@ -240,12 +241,12 @@ const styles = StyleSheet.create({
   },
   info: { flex: 1 },
   tableName: {
-    fontSize: 16,
+    fontSize: normalize(15),
     fontFamily: theme.fonts.bold,
     color: theme.colors.primary
   },
   countText: {
-    fontSize: 14,
+    fontSize: normalize(13),
     color: theme.colors.secondary,
     marginTop: 4
   },
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   forceSyncText: {
     color: '#FFF',
     fontFamily: theme.fonts.bold,
-    fontSize: 14,
+    fontSize: normalize(13),
     textAlign: 'center'
   }
 });

@@ -4,6 +4,7 @@ import { Plus, X, DollarSign, Trash2, ArrowLeft } from 'lucide-react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useValorHora } from '../hooks/useValorHora';
+import { theme } from '../theme/theme';
 import { normalize } from '../utils/responsive';
 
 export default function ValorHoraScreen() {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ponto Fácil",
     "slug": "ponto-facil-android",
-    "version": "1.0.90",
+    "version": "1.0.92",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "versionCode": 92
+      "versionCode": 94
     },
     "web": {
       "favicon": "./assets/favicon.png"

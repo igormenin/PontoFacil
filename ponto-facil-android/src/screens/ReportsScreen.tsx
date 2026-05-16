@@ -4,6 +4,8 @@ import { FileText, Download, ChevronLeft, Calendar as CalendarIcon } from 'lucid
 import { useNavigation } from '@react-navigation/native';
 import { useReports } from '../hooks/useReports';
 import { useClients } from '../hooks/useClients';
+import { theme } from '../theme/theme';
+import { normalize } from '../utils/responsive';
 
 const MONTHS_BR = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: normalize(20),
     fontWeight: 'bold',
     color: '#460045',
   },
@@ -188,7 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: normalize(11),
     fontWeight: 'bold',
     color: '#9B2F96',
     textTransform: 'uppercase',
@@ -214,12 +216,12 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   filterLabel: {
-    fontSize: 10,
+    fontSize: normalize(9),
     fontWeight: 'bold',
     color: '#82737D',
   },
   filterValue: {
-    fontSize: 18,
+    fontSize: normalize(17),
     fontWeight: 'bold',
     color: '#1E1A22',
   },
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   adjustButtonText: {
     color: '#460045',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: normalize(13),
   },
   clientScroll: {
     flexDirection: 'row',
@@ -267,7 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   actionsHint: {
-    fontSize: 14,
+    fontSize: normalize(13),
     color: '#82737D',
     textAlign: 'center',
     marginBottom: 20,
@@ -293,12 +295,12 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: normalize(16),
     fontWeight: 'bold',
   },
   actionDesc: {
     color: '#D4C1CD',
-    fontSize: 12,
+    fontSize: normalize(11),
     marginTop: 2,
   },
 });

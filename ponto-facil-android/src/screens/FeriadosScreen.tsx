@@ -6,6 +6,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { useFeriados } from '../hooks/useFeriados';
 import { theme } from '../theme/theme';
+import { normalize } from '../utils/responsive';
 
 export default function FeriadosScreen() {
   const navigation = useNavigation();
@@ -154,33 +155,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24, flexDirection: 'row', alignItems: 'center' },
   backButton: { marginRight: 16 },
-  title: { fontSize: 28, fontFamily: theme.fonts.bold, color: theme.colors.primary },
+  title: { fontSize: normalize(24), fontFamily: theme.fonts.bold, color: theme.colors.primary },
   list: { paddingHorizontal: 16, paddingBottom: 100 },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface_container_lowest, borderRadius: 20, padding: 16, marginBottom: 12 },
   iconContainer: { width: 48, height: 48, borderRadius: 14, backgroundColor: theme.colors.surface_container, justifyContent: 'center', alignItems: 'center' },
   cardInfo: { flex: 1, marginLeft: 16 },
-  cardTitle: { color: theme.colors.on_surface, fontSize: 16, fontFamily: theme.fonts.bold },
-  cardSubtitle: { color: theme.colors.on_surface_variant, fontSize: 12, marginTop: 2, fontFamily: theme.fonts.regular },
+  cardTitle: { color: theme.colors.on_surface, fontSize: normalize(15), fontFamily: theme.fonts.bold },
+  cardSubtitle: { color: theme.colors.on_surface_variant, fontSize: normalize(11), marginTop: 2, fontFamily: theme.fonts.regular },
   swipeActionsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   swipeAction: { width: 64, height: '100%', justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 20, borderBottomRightRadius: 20, backgroundColor: theme.colors.error },
   fab: { position: 'absolute', right: 24, bottom: 24, backgroundColor: theme.colors.primary_container, width: 64, height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 8 },
   emptyState: { alignItems: 'center', marginTop: 100 },
-  emptyText: { color: theme.colors.outline, fontSize: 16, fontFamily: theme.fonts.regular },
+  emptyText: { color: theme.colors.outline, fontSize: normalize(15), fontFamily: theme.fonts.regular },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(70, 0, 69, 0.4)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: theme.colors.surface_container_lowest, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 48 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
-  modalTitle: { fontSize: 24, fontFamily: theme.fonts.bold, color: theme.colors.primary },
+  modalTitle: { fontSize: normalize(20), fontFamily: theme.fonts.bold, color: theme.colors.primary },
   closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface_container, justifyContent: 'center', alignItems: 'center' },
   inputGroup: { marginBottom: 20 },
   switchGroup: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingHorizontal: 4 },
-  label: { fontSize: 12, fontFamily: theme.fonts.bold, color: theme.colors.secondary, marginBottom: 8, marginLeft: 4 },
-  labelSwitch: { fontSize: 16, fontFamily: theme.fonts.bold, color: theme.colors.on_surface },
-  input: { backgroundColor: theme.colors.surface_container, borderRadius: 16, padding: 16, color: theme.colors.on_surface, fontSize: 16, fontFamily: theme.fonts.regular, justifyContent: 'center' },
+  label: { fontSize: normalize(11), fontFamily: theme.fonts.bold, color: theme.colors.secondary, marginBottom: 8, marginLeft: 4 },
+  labelSwitch: { fontSize: normalize(15), fontFamily: theme.fonts.bold, color: theme.colors.on_surface },
+  input: { backgroundColor: theme.colors.surface_container, borderRadius: 16, padding: normalize(14), color: theme.colors.on_surface, fontSize: normalize(15), fontFamily: theme.fonts.regular, justifyContent: 'center' },
   chipScroll: { flexDirection: 'row', paddingVertical: 4 },
   chip: { backgroundColor: theme.colors.surface_container, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: theme.colors.outline },
   chipSelected: { backgroundColor: theme.colors.primary_container, borderColor: theme.colors.primary },
-  chipText: { color: theme.colors.on_surface_variant, fontSize: 14, fontFamily: theme.fonts.medium },
+  chipText: { color: theme.colors.on_surface_variant, fontSize: normalize(13), fontFamily: theme.fonts.medium },
   chipTextSelected: { color: '#FFF', fontFamily: theme.fonts.bold },
   saveButton: { backgroundColor: theme.colors.primary_container, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 12 },
-  saveButtonText: { color: '#FFF', fontSize: 18, fontFamily: theme.fonts.bold },
+  saveButtonText: { color: '#FFF', fontSize: normalize(16), fontFamily: theme.fonts.bold },
 });
