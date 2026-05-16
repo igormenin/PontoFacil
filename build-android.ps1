@@ -1,7 +1,9 @@
-# Script de Build Local - Ponto Fácil (Isolado)
-# Este script configura o ambiente apenas para esta sessão do terminal e compila o app Android.
-
 # ==========================================================
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$StartTime = Get-Date
+Write-Host "Build iniciado em: $($StartTime.ToString('HH:mm:ss'))" -ForegroundColor Gray
+
+
 # --- AJUSTE OS CAMINHOS ABAIXO CONFORME SEU SISTEMA ---
 # ==========================================================
 $JAVA_17_PATH = "C:\Program Files\Java\jdk-17" 
@@ -89,5 +91,8 @@ if (Test-Path "android") {
 # Voltar para a pasta raiz
 cd ..
 
+$EndTime = Get-Date
+$Duration = $EndTime - $StartTime
 Write-Host "`n--- FIM ---" -ForegroundColor Green
+Write-Host "Tempo total: $($Duration.Minutes)m $($Duration.Seconds)s" -ForegroundColor Yellow
 Write-Host "Se tudo deu certo, seu APK estara em: ponto-facil-android\android\app\build\outputs\apk\release\"

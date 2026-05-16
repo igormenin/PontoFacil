@@ -31,6 +31,7 @@ export function useMonths() {
     dailyMeta: 8
   });
   const [loading, setLoading] = useState(true);
+  const [canGoBack, setCanGoBack] = useState(true);
 
   const fetchMonthData = useCallback(async () => {
     setLoading(true);
@@ -180,6 +181,20 @@ export function useMonths() {
         chartData,
         dailyMeta
       });
+
+      // Check if there are any records in months BEFORE the current selectedMonth
+      const prevMonth = new Date(selectedMonth);
+      prevMonth.setMonth(selectedMonth.getMonth() - 1);
+      const prevYear = prevMonth.getFullYear();
+      const prevMonthStr = String(prevMonth.getMonth() + 1).padStart(2, '0');
+      const prevAnoMes = `${prevYear}-${prevMonthStr}`;
+
+      const hasPrevData = await db.getFirstAsync<any>(
+        "SELECT id FROM dia WHERE diaData < ? LIMIT 1",
+        [`${year}-${month}-01`]
+      );
+      
+      setCanGoBack(!!hasPrevData);
     } catch (error) {
       console.error('Error fetching month data:', error);
     } finally {
@@ -197,11 +212,17 @@ export function useMonths() {
     setSelectedMonth(next);
   };
 
+  const goToToday = () => {
+    setSelectedMonth(new Date());
+  };
+
   return {
     selectedMonth,
     summary,
     loading,
+    canGoBack,
     changeMonth,
+    goToToday,
     refresh: fetchMonthData
   };
 }

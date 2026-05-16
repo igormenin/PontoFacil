@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Dimensions } from 'react-native';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, DollarSign, Clock, TrendingUp } from 'lucide-react-native';
 import { useMonths } from '../hooks/useMonths';
@@ -14,16 +14,31 @@ const MONTHS_BR = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export default function CalendarScreen() {
+  export default function CalendarScreen() {
   const navigation = useNavigation<any>();
-  const { selectedMonth, summary, loading, changeMonth } = useMonths();
+  const { selectedMonth, summary, loading, canGoBack, changeMonth, goToToday } = useMonths();
 
+  const isCurrentMonth = selectedMonth.getFullYear() === new Date().getFullYear() && selectedMonth.getMonth() === new Date().getMonth();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        !isCurrentMonth ? (
+          <TouchableOpacity onPress={goToToday} style={{ marginRight: 20 }}>
+            <CalendarIcon size={24} color="#FFF" />
+          </TouchableOpacity>
+        ) : undefined
+      ),
+    });
+  }, [navigation, isCurrentMonth, goToToday]);
   const renderHeader = () => {
-    const isCurrentMonth = selectedMonth.getFullYear() === new Date().getFullYear() && selectedMonth.getMonth() === new Date().getMonth();
-
     return (
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navButton}>
+        <TouchableOpacity 
+          onPress={() => canGoBack && changeMonth(-1)} 
+          style={[styles.navButton, !canGoBack && { opacity: 0.3 }]}
+          disabled={!canGoBack}
+        >
           <ChevronLeft color="#460045" size={24} />
         </TouchableOpacity>
         
@@ -107,19 +122,30 @@ export default function CalendarScreen() {
           renderItem={({ item }) => {
             if (!item.day) return <View style={styles.dayCellEmpty} />;
             
-            const isToday = new Date().toDateString() === new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), item.day).toDateString();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const itemDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), item.day);
+            const isFuture = itemDate > today;
+            const isToday = itemDate.getTime() === today.getTime();
             
             return (
               <TouchableOpacity 
-                style={[styles.dayCell, isToday && styles.todayCell]}
+                style={[styles.dayCell, isToday && styles.todayCell, isFuture && styles.disabledDayCell]}
+                disabled={isFuture}
                 onPress={() => {
                    const dateStr = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
                    navigation.navigate('Day', { date: dateStr });
                 }}
               >
-                <Text style={[styles.dayText, isToday && styles.todayText]}>{item.day}</Text>
-                {/* Visual indicator for work - for now, just a dot */}
-                <View style={styles.workIndicator} />
+                <Text style={[
+                  styles.dayText, 
+                  isToday && styles.todayText,
+                  isFuture && styles.disabledDayText
+                ]}>{item.day}</Text>
+                {/* Visual indicator for work - only if hours > 0 */}
+                {summary.chartData.find(c => c.day === item.day && c.hours > 0) && (
+                  <View style={styles.workIndicator} />
+                )}
               </TouchableOpacity>
             );
           }}
@@ -159,6 +185,8 @@ const styles = StyleSheet.create({
   monthTitle: {
     alignItems: 'center',
   },
+
+
   monthName: {
     fontSize: 22,
     fontFamily: theme.fonts.bold,
@@ -234,10 +262,11 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.medium,
   },
   todayCell: {
-    backgroundColor: theme.colors.primary_container,
+    borderWidth: 2,
+    borderColor: theme.colors.primary_container,
   },
   todayText: {
-    color: theme.colors.on_primary,
+    color: theme.colors.primary_container,
     fontFamily: theme.fonts.bold,
   },
   workIndicator: {
@@ -246,5 +275,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#631660',
     marginTop: 4,
+  },
+  disabledDayCell: {
+    opacity: 0.3,
+  },
+  disabledDayText: {
+    color: theme.colors.outline,
   }
 });
