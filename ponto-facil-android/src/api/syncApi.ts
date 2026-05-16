@@ -3,12 +3,11 @@ import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Point to Local API for debugging
-const API_URL = 'https://ponto-facil-backend.vercel.app/api';
+import { API_CONFIG } from '../config/api.config';
 
 const syncApi = axios.create({
-  baseURL: API_URL,
-  timeout: 60000,
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
 });
 
 syncApi.interceptors.request.use(async (config) => {

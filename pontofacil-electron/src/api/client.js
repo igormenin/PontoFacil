@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+import { API_CONFIG } from '../config/api';
+
 const api = axios.create({
-  baseURL: 'https://pontofacil-seven.vercel.app/api',
-  timeout: 60000,
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
