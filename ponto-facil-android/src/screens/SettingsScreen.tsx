@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useSync } from '../hooks/useSync';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { theme } from '../theme/theme';
+import { getDatabase } from '../database/db';
 
 const LAST_SYNC_KEY = '@PontoFacil:lastSyncAt';
 
@@ -37,13 +38,40 @@ export default function SettingsScreen() {
   }, [syncing]);
 
   const handleSync = async () => {
-    const success = await performSync();
-    if (success) {
-      Alert.alert('Sucesso', 'Sincronização concluída com sucesso!');
-    } else {
-      Alert.alert('Erro', error || 'Falha ao sincronizar. Verifique sua conexão.');
-    }
+    Alert.alert(
+      'Sincronização',
+      'Deseja realizar uma sincronização normal ou completa?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Normal', 
+          onPress: async () => {
+            const success = await performSync(false);
+            if (success) Alert.alert('Sucesso', 'Sincronização concluída!');
+            else Alert.alert('Erro', error || 'Falha na sincronização.');
+          }
+        },
+        { 
+          text: 'Completa (Baixar tudo)', 
+          onPress: async () => {
+            try {
+              const db = await getDatabase();
+              // Limpa fila e metadados para garantir um estado limpo como na tela de debug
+              await db.execAsync('DELETE FROM sync_queue');
+              await AsyncStorage.removeItem(LAST_SYNC_KEY);
+              
+              const success = await performSync(true);
+              if (success) Alert.alert('Sucesso', 'Todos os dados foram baixados!');
+              else Alert.alert('Erro', error || 'Falha na sincronização completa.');
+            } catch (e: any) {
+              Alert.alert('Erro fatal', e.message);
+            }
+          }
+        }
+      ]
+    );
   };
+
 
   return (
     <View style={styles.container}>

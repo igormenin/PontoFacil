@@ -25,10 +25,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, user: null, isAuthenticated: false });
   },
   initialize: async () => {
-    const token = await SecureStore.getItemAsync('auth_token');
-    const userData = await SecureStore.getItemAsync('user_data');
-    if (token && userData) {
-      set({ token, user: JSON.parse(userData), isAuthenticated: true });
-    }
+    // Apenas limpa o estado para garantir que comece deslogado toda vez que o app iniciar
+    set({ token: null, user: null, isAuthenticated: false });
   },
 }));

@@ -75,14 +75,24 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     const initSync = async () => {
-      const success = await performSync();
-      if (success) {
-        refreshMonths(); // Refresh months data after sync
-        refreshIntervals(); // Refresh intervals too
+      try {
+        const db = await getDatabase();
+        // Verifica se temos dados sincronizados do servidor
+        const checkSynced = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaId IS NOT NULL LIMIT 1');
+        
+        // Sincroniza (força se o banco não tiver dados sincronizados)
+        await performSync(!checkSynced);
+        
+        // Recarrega os dados após a tentativa de sincronização
+        loadDashboardData();
+      } catch (err) {
+        console.error('[Dashboard] Erro na sincronização inicial:', err);
+        loadDashboardData(); // Garante o carregamento mesmo com erro no sync
       }
     };
+    
     initSync();
-  }, [performSync, refreshMonths, refreshIntervals]);
+  }, [performSync, loadDashboardData, !!user?.leitor]);
 
   const navigateToDay = () => {
     const now = new Date();

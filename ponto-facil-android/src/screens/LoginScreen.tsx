@@ -1,37 +1,165 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
-import { LogIn, Lock, User, Clock } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Dimensions, Switch } from 'react-native';
+import { LogIn, Lock, User, Clock, Fingerprint } from 'lucide-react-native';
 import Constants from 'expo-constants';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../store/useAuthStore';
 import syncApi from '../api/syncApi';
 
 const { width } = Dimensions.get('window');
 
+const SECURE_AUTH_KEY = 'user_auth_credentials';
+
 export default function LoginScreen() {
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState(true);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+  const [useBiometric, setUseBiometric] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
 
+
+  useEffect(() => {
+    checkBiometrics();
+    loadSavedCredentials();
+  }, []);
+
+  const checkBiometrics = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    const isSupported = compatible && enrolled;
+    setIsBiometricSupported(isSupported);
+    return isSupported;
+  };
+
+
+  const loadSavedCredentials = async () => {
+    try {
+      const saved = await SecureStore.getItemAsync(SECURE_AUTH_KEY);
+      const biometricPref = await SecureStore.getItemAsync('use_biometric_pref');
+      
+      if (saved) {
+        const { login: savedLogin, senha: savedSenha } = JSON.parse(saved);
+        setLogin(savedLogin);
+        setSenha(savedSenha);
+        setHasSavedCredentials(true);
+        
+        if (biometricPref === 'true') {
+          setUseBiometric(true);
+          // Se biometria estiver ativa, dispara o prompt automaticamente após um pequeno delay
+          setTimeout(() => {
+            handleBiometricLogin(savedLogin, savedSenha);
+          }, 500);
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao carregar credenciais', e);
+    }
+  };
+
+
+  const saveCredentials = async (userLogin: string, userSenha: string) => {
+    if (rememberPassword) {
+      await SecureStore.setItemAsync(SECURE_AUTH_KEY, JSON.stringify({ login: userLogin, senha: userSenha }));
+    } else {
+      await SecureStore.deleteItemAsync(SECURE_AUTH_KEY);
+    }
+  };
+
+  const handleBiometricLogin = async (savedLogin?: string, savedSenha?: string) => {
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Acesse com sua Biometria',
+      fallbackLabel: 'Usar Senha',
+    });
+
+    if (result.success) {
+      // Se vier do auto-prompt, usamos as credenciais passadas
+      if (savedLogin && savedSenha) {
+        performLogin(savedLogin, savedSenha);
+      } else {
+        handleLogin();
+      }
+    }
+  };
+
+  const askToEnableBiometrics = () => {
+    return new Promise<void>((resolve) => {
+      if (isBiometricSupported && !useBiometric) {
+        Alert.alert(
+          'Ativar Biometria',
+          'Deseja usar sua digital para entrar mais rápido nas próximas vezes?',
+          [
+            { 
+              text: 'Agora não', 
+              style: 'cancel',
+              onPress: () => resolve() 
+            },
+            { 
+              text: 'Sim, ativar', 
+              onPress: async () => {
+                const auth = await LocalAuthentication.authenticateAsync({
+                  promptMessage: 'Confirme sua digital para ativar',
+                });
+                if (auth.success) {
+                  await SecureStore.setItemAsync('use_biometric_pref', 'true');
+                  setUseBiometric(true);
+                  Alert.alert('Sucesso', 'Biometria ativada!');
+                }
+                resolve();
+              } 
+            }
+          ]
+        );
+      } else {
+        resolve();
+      }
+    });
+  };
+
+
+
+
   const handleLogin = async () => {
-    if (!login || !senha) {
-      Alert.alert('Atenção', 'Preencha todos os campos!');
+    await performLogin(login, senha);
+  };
+
+  const performLogin = async (userLogin: string, userSenha: string) => {
+    if (!userLogin || !userSenha) {
+      Alert.alert('Atenção', 'Preencha usuário e senha ou utilize a biometria.');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await syncApi.post('/auth/login', { login, senha });
+      const response = await syncApi.post('/auth/login', { login: userLogin, senha: userSenha });
       const { token, user } = response.data;
       
+      // Salva as credenciais básicas primeiro
+      await saveCredentials(userLogin, userSenha);
+      
+      // Se suportar biometria e ainda não estiver ativa, pergunta ANTES de mudar de tela
+      if (isBiometricSupported && !useBiometric) {
+        await askToEnableBiometrics();
+      }
+
+      // SÓ AGORA avança para o Dashboard
       await setAuth(token, user);
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Erro ao conectar no servidor. Verifique credenciais.';
+      console.error('Erro no login:', error);
+      const message = error.response?.data?.error?.message || 'Credenciais inválidas ou erro de conexão.';
       Alert.alert('Erro no Login', message);
     } finally {
       setLoading(false);
     }
   };
+
+
+
+
+
 
   return (
     <KeyboardAvoidingView 
@@ -80,9 +208,28 @@ export default function LoginScreen() {
             />
           </View>
 
+          <View style={styles.rememberRow}>
+            <View style={styles.rememberLeft}>
+              <Switch
+                value={rememberPassword}
+                onValueChange={setRememberPassword}
+                trackColor={{ false: "#eee5f0", true: "#631660" }}
+                thumbColor="#FFFFFF"
+              />
+              <Text style={styles.rememberText}>Salvar Senha</Text>
+            </View>
+            
+            {isBiometricSupported && hasSavedCredentials && (
+              <TouchableOpacity onPress={() => handleBiometricLogin()} style={styles.bioIcon}>
+                <Fingerprint size={28} color="#631660" />
+              </TouchableOpacity>
+            )}
+
+          </View>
+
           <TouchableOpacity 
             style={styles.button} 
-            onPress={handleLogin}
+            onPress={() => handleLogin()}
             disabled={loading}
           >
             {loading ? (
@@ -94,6 +241,7 @@ export default function LoginScreen() {
               </View>
             )}
           </TouchableOpacity>
+
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -152,11 +300,38 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   form: {
-    gap: 24,
+    gap: 16,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  rememberLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rememberText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#82737d',
+  },
+  bioIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#fcf8fc',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#eee5f0',
   },
   inputGroup: {
     gap: 8,
   },
+
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',

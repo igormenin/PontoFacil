@@ -31,6 +31,12 @@ export function useSync() {
     const db = await getDatabase();
 
     try {
+      // Determina se precisa de sincronização forçada (primeira vez ou pedido manual)
+      const lastSyncAt = await AsyncStorage.getItem(LAST_SYNC_KEY);
+      const shouldForce = forceFullSync || !lastSyncAt;
+      
+      console.log(`[Sync] Iniciando sincronização. Force: ${shouldForce}`);
+
       // 1. PUSH PHASE - Skip if reader
       if (!isLeitor) {
         try {
@@ -115,8 +121,9 @@ export function useSync() {
       }
 
       // 2. PULL PHASE
-      console.log(`[Sync] Iniciando requisição de PULL...`);
-      const { changes, serverTime } = await pullSync(forceFullSync);
+      console.log(`[Sync] Iniciando requisição de PULL (force=${shouldForce})...`);
+      const { changes, serverTime } = await pullSync(shouldForce);
+
       console.log(`[Sync] Resposta do PULL recebida. ServerTime:`, serverTime);
       console.log(`[Sync] Tabelas com alterações no PULL:`, Object.keys(changes));
       const sanitize = (arr: any[]) => arr.map(v => v === undefined ? null : v);
@@ -139,12 +146,29 @@ export function useSync() {
             continue;
           }
 
-          const existing = await db.getFirstAsync<any>(`SELECT id FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
-          
-          // Map Server -> Mobile names
+          // Map Server -> Mobile names e limpeza de datas
           if (remote.vhDataInicio) {
             remote.vhMesInicio = remote.vhDataInicio.substring(0, 7);
             delete remote.vhDataInicio;
+          }
+          if (table === 'dia' && remote.diaData) {
+            remote.diaData = remote.diaData.split('T')[0];
+          }
+          if (table === 'feriado' && remote.ferData) {
+            remote.ferData = remote.ferData.split('T')[0];
+          }
+
+          let existing = await db.getFirstAsync<any>(`SELECT id FROM ${table} WHERE ${serverIdField} = ?`, [serverId]);
+          
+          // Se não encontrou pelo ID do servidor, procura por chave de negócio (data/mês) para evitar erro de UNIQUE
+          if (!existing) {
+            if (table === 'dia' && remote.diaData) {
+              existing = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaData = ?', [remote.diaData]);
+            } else if (table === 'mes' && remote.mesAnoMes) {
+              existing = await db.getFirstAsync<any>('SELECT id FROM mes WHERE mesAnoMes = ?', [remote.mesAnoMes]);
+            } else if (table === 'feriado' && remote.ferData) {
+              existing = await db.getFirstAsync<any>('SELECT id FROM feriado WHERE ferData = ?', [remote.ferData]);
+            }
           }
 
           // Generic column mapper - filter out server-only technical columns
@@ -178,10 +202,6 @@ export function useSync() {
             const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [remote.vhCliId]);
             if (localCli) remote.vhCliId = localCli.id;
             if (remote.vhMesInicio) remote.vhMesInicio = remote.vhMesInicio.substring(0, 7);
-          } else if (table === 'dia' && remote.diaData) {
-            remote.diaData = remote.diaData.split('T')[0];
-          } else if (table === 'feriado' && remote.ferData) {
-            remote.ferData = remote.ferData.split('T')[0];
           }
 
           const values = columns.map(k => remote[k]);
