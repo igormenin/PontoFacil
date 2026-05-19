@@ -39,8 +39,6 @@ if (Test-Path $ANDROID_SDK_PATH) {
 Write-Host "`nVerificando versoes das ferramentas:" -ForegroundColor Yellow
 java -version
 Write-Host ""
-eas --version
-
 # 4. Iniciar Build Nativo (Fluxo Windows)
 Write-Host "`n--- Iniciando Compilacao Nativa (Metodo Windows) ---" -ForegroundColor Magenta
 
