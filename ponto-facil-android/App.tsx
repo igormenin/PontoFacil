@@ -16,6 +16,8 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initializeDatabase } from './src/database/db';
 import { useAuthStore } from './src/store/useAuthStore';
 import { useConfigStore } from './src/store/useConfigStore';
+import { OneSignal } from 'react-native-onesignal';
+import { API_CONFIG } from './src/config/api.config';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +28,7 @@ export default function App() {
   const [isDbReady, setIsDbReady] = useState(false);
   const initializeAuth = useAuthStore((state) => state.initialize);
   const initializeConfig = useConfigStore((state) => state.initialize);
+  const user = useAuthStore((state) => state.user);
 
   const [fontsLoaded] = useFonts({
     Inter_300Light,
@@ -50,6 +53,22 @@ export default function App() {
 
     prepare();
   }, [initializeAuth, initializeConfig]);
+
+  useEffect(() => {
+    if (isDbReady) {
+      // Inicializar OneSignal e pedir permissões no Android 13+
+      OneSignal.initialize(API_CONFIG.ONESIGNAL_APP_ID);
+      OneSignal.Notifications.requestPermission(true);
+    }
+  }, [isDbReady]);
+
+  useEffect(() => {
+    if (isDbReady && user && user.id) {
+      OneSignal.login(user.id.toString());
+    } else if (isDbReady) {
+      OneSignal.logout();
+    }
+  }, [isDbReady, user]);
 
   useEffect(() => {
     if (isDbReady && fontsLoaded) {

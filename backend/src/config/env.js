@@ -17,4 +17,8 @@ export const env = {
     SECRET: process.env.JWT_SECRET,
     EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   },
+  ONESIGNAL: {
+    APP_ID: process.env.ONESIGNAL_APP_ID,
+    REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY,
+  },
 };

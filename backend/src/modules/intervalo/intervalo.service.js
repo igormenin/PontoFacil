@@ -1,6 +1,25 @@
 import { getClient } from '../../config/database.js';
 import { calculateDuration } from '../../utils/calcHoras.js';
 import * as mesService from '../mes/mes.service.js';
+import { sendNotification } from '../../utils/notificationService.js';
+
+const formatDate = (dateVal) => {
+  if (!dateVal) return '';
+  return new Date(dateVal).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+};
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  return `${parts[0]}:${parts[1]}`;
+};
+
+const formatDecimalHours = (decimalHours) => {
+  const num = parseFloat(decimalHours || 0);
+  const hours = Math.floor(num);
+  const minutes = Math.round((num - hours) * 60);
+  return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+};
 
 export const create = async (intervaloData) => {
   const { dia_id, cli_id, ordem, inicio, fim, anotacoes } = intervaloData;
@@ -38,7 +57,21 @@ export const create = async (intervaloData) => {
     const anoMes = new Date(diaData).toISOString().substring(0, 7);
     await mesService.recalculateMonthInternal(client, anoMes);
 
+    // Fetch updated monthly total
+    const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+    const totalMes = mesRes.rows[0]?.mes_realizado || 0;
+
     await client.query('COMMIT');
+
+    // Trigger push notification to all users
+    sendNotification({
+      toAll: true,
+      title: 'Novo Lançamento ⏰',
+      message: fim 
+        ? `Registrado: ${formatDate(diaData)} das ${formatTime(inicio)} às ${formatTime(fim)} (${formatDecimalHours(horas)}).\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+        : `Registrado: Entrada em ${formatDate(diaData)} às ${formatTime(inicio)}.\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+    }).catch(err => console.error('[Notification Error]', err));
+
     return result.rows[0];
   } catch (err) {
     await client.query('ROLLBACK');
@@ -107,7 +140,21 @@ export const update = async (id, data) => {
         const anoMes = new Date(diaData).toISOString().substring(0, 7);
         await mesService.recalculateMonthInternal(client, anoMes);
         
+        // Fetch updated monthly total
+        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+        const totalMes = mesRes.rows[0]?.mes_realizado || 0;
+
         await client.query('COMMIT');
+
+        // Trigger push notification to all users
+        sendNotification({
+          toAll: true,
+          title: 'Lançamento Alterado 📝',
+          message: finalFim 
+            ? `Alterado: ${formatDate(diaData)} das ${formatTime(finalInicio)} às ${formatTime(finalFim)} (${formatDecimalHours(horas)}).\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+            : `Alterado: Entrada em ${formatDate(diaData)} às ${formatTime(finalInicio)}.\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+        }).catch(err => console.error('[Notification Error]', err));
+
         return result.rows[0];
     } catch (err) {
         await client.query('ROLLBACK');
@@ -133,19 +180,39 @@ export const remove = async (id) => {
     try {
         await client.query('BEGIN');
         
-        const intRes = await client.query('SELECT int_dia_id FROM intervalo WHERE int_id = $1', [id]);
+        // Fetch interval details and corresponding day date before deletion
+        const intRes = await client.query(
+            `SELECT i.int_dia_id, i.int_inicio, i.int_fim, i.int_horas, d.dia_data 
+             FROM intervalo i 
+             JOIN dia d ON d.dia_id = i.int_dia_id 
+             WHERE i.int_id = $1`, 
+            [id]
+        );
         if (intRes.rows.length === 0) throw new Error('Intervalo not found');
-        const { int_dia_id } = intRes.rows[0];
+        const { int_dia_id, int_inicio, int_fim, int_horas, dia_data } = intRes.rows[0];
         
         await client.query('DELETE FROM intervalo WHERE int_id = $1', [id]);
         
         await recalculateDiaInternal(client, int_dia_id);
         
-        const diaRes = await client.query('SELECT dia_data FROM dia WHERE dia_id = $1', [int_dia_id]);
-        const anoMes = new Date(diaRes.rows[0].dia_data).toISOString().substring(0, 7);
+        const anoMes = new Date(dia_data).toISOString().substring(0, 7);
         await mesService.recalculateMonthInternal(client, anoMes);
         
+        // Fetch updated monthly total
+        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+        const totalMes = mesRes.rows[0]?.mes_realizado || 0;
+
         await client.query('COMMIT');
+
+        // Trigger push notification to all users
+        sendNotification({
+          toAll: true,
+          title: 'Lançamento Excluído 🗑️',
+          message: int_fim 
+            ? `Excluído: ${formatDate(dia_data)} das ${formatTime(int_inicio)} às ${formatTime(int_fim)} (${formatDecimalHours(int_horas)}).\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+            : `Excluído: Entrada em ${formatDate(dia_data)} às ${formatTime(int_inicio)}.\nTotal do mês: ${formatDecimalHours(totalMes)}.`
+        }).catch(err => console.error('[Notification Error]', err));
+
         return true;
     } catch (err) {
         await client.query('ROLLBACK');
