@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ponto Fácil",
     "slug": "ponto-facil-android",
-    "version": "1.0.105",
+    "version": "1.0.106",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "versionCode": 107
+      "versionCode": 108
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,8 +36,10 @@
         "onesignal-expo-plugin",
         {
           "mode": "production",
-          "androidLocalNotificationIcon": "./assets/notification_icon.png",
-          "androidLocalNotificationAccentColor": "#FF5E123D"
+          "smallIcons": [
+            "./assets/notification_icon.png"
+          ],
+          "smallIconAccentColor": "#FF5E123D"
         }
       ],
       "./withNotificationSound"
