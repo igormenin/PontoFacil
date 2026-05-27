@@ -9,7 +9,7 @@ import { env } from '../config/env.js';
  * @param {string} params.message - Mensagem da notificação
  * @param {Object} [params.data] - Dados adicionais customizados a serem enviados com o push (opcional)
  */
-export const sendNotification = async ({ userIds, title, message, data = {}, toAll = false }) => {
+export const sendNotification = async ({ userIds, subscriptionIds, title, message, data = {}, toAll = false }) => {
   const appId = env.ONESIGNAL.APP_ID;
   const apiKey = env.ONESIGNAL.REST_API_KEY;
 
@@ -20,27 +20,36 @@ export const sendNotification = async ({ userIds, title, message, data = {}, toA
 
   const payload = {
     app_id: appId,
-    target_channel: 'push',
     headings: { pt: title, en: title },
     contents: { pt: message, en: message },
-    data: data
+    data: data,
+    android_sound: 'notification_sound'
   };
 
   if (toAll) {
     // Envia para todos os inscritos utilizando o segmento padrão do OneSignal
-    payload.included_segments = ['Subscribed Users'];
-  } else if (userIds) {
-    // Garante que os IDs sejam tratados como strings
-    const targets = Array.isArray(userIds) 
-      ? userIds.map(id => id.toString()) 
-      : [userIds.toString()];
-    
-    payload.include_aliases = {
-      external_id: targets
-    };
+    payload.included_segments = ['Total Subscriptions'];
   } else {
-    console.error('[OneSignal] Erro: Você deve especificar "userIds" ou definir "toAll: true".');
-    throw new Error('Você deve especificar "userIds" ou definir "toAll: true" para enviar a notificação.');
+    payload.target_channel = 'push';
+    
+    if (subscriptionIds) {
+      // Envia para dispositivos específicos pelo ID de inscrição do OneSignal
+      payload.include_subscription_ids = Array.isArray(subscriptionIds) 
+        ? subscriptionIds.map(id => id.toString()) 
+        : [subscriptionIds.toString()];
+    } else if (userIds) {
+      // Garante que os IDs sejam tratados como strings
+      const targets = Array.isArray(userIds) 
+        ? userIds.map(id => id.toString()) 
+        : [userIds.toString()];
+      
+      payload.include_aliases = {
+        external_id: targets
+      };
+    } else {
+      console.error('[OneSignal] Erro: Você deve especificar "userIds", "subscriptionIds" ou definir "toAll: true".');
+      throw new Error('Você deve especificar "userIds", "subscriptionIds" ou definir "toAll: true" para enviar a notificação.');
+    }
   }
 
   try {
