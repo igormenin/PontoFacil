@@ -28,7 +28,7 @@ export const sendNotification = async ({ userIds, subscriptionIds, title, messag
 
   if (toAll) {
     // Envia para todos os inscritos utilizando o segmento padrão do OneSignal
-    payload.included_segments = ['Subscribed Users'];
+    payload.included_segments = ['Total Subscriptions'];
   } else {
     payload.target_channel = 'push';
     
