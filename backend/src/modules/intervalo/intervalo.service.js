@@ -63,8 +63,8 @@ export const create = async (intervaloData, userId) => {
 
     await client.query('COMMIT');
 
-    // Trigger push notification to all users
-    sendNotification({
+    // Trigger push notification (await + timeout:1000 garante que o container serverless não congele antes do envio)
+    await sendNotification({
       toAll: true,
       title: 'Novo Lançamento ⏰',
       message: fim 
@@ -147,8 +147,8 @@ export const update = async (id, data, userId) => {
 
         await client.query('COMMIT');
 
-        // Trigger push notification to all users
-        sendNotification({
+        // Trigger push notification (await + timeout:1000 garante que o container serverless não congele antes do envio)
+        await sendNotification({
           toAll: true,
           title: 'Lançamento Alterado 📝',
           message: finalFim 
@@ -205,8 +205,8 @@ export const remove = async (id, userId) => {
  
         await client.query('COMMIT');
 
-        // Trigger push notification to all users
-        sendNotification({
+        // Trigger push notification (await + timeout:1000 garante que o container serverless não congele antes do envio)
+        await sendNotification({
           toAll: true,
           title: 'Lançamento Excluído 🗑️',
           message: int_fim 
