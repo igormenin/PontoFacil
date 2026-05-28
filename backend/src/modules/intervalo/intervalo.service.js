@@ -21,7 +21,7 @@ const formatDecimalHours = (decimalHours) => {
   return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
 };
 
-export const create = async (intervaloData) => {
+export const create = async (intervaloData, userId) => {
   const { dia_id, cli_id, ordem, inicio, fim, anotacoes } = intervaloData;
   const client = await getClient();
   try {
@@ -45,9 +45,9 @@ export const create = async (intervaloData) => {
 
     // 3. Insert Intervalo
     const result = await client.query(
-      `INSERT INTO intervalo (int_dia_id, int_cli_id, int_ordem, int_inicio, int_fim, int_horas, int_valor_hora, int_valor_total, int_anotacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [dia_id, cli_id, ordem, inicio, fim, horas, valorHora, valorTotal, anotacoes]
+      `INSERT INTO intervalo (int_dia_id, int_cli_id, int_ordem, int_inicio, int_fim, int_horas, int_valor_hora, int_valor_total, int_anotacoes, usu_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [dia_id, cli_id, ordem, inicio, fim, horas, valorHora, valorTotal, anotacoes, userId]
     );
 
     // 4. Recalculate Dia Totals
@@ -55,7 +55,7 @@ export const create = async (intervaloData) => {
 
     // 5. Recalculate Mes Totals
     const anoMes = new Date(diaData).toISOString().substring(0, 7);
-    await mesService.recalculateMonthInternal(client, anoMes);
+    await mesService.recalculateMonthInternal(client, anoMes, userId);
 
     // Fetch updated monthly total
     const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
@@ -81,15 +81,15 @@ export const create = async (intervaloData) => {
   }
 };
 
-export const update = async (id, data) => {
+export const update = async (id, data, userId) => {
     const { cli_id, ordem, inicio, fim, anotacoes } = data;
     const client = await getClient();
     try {
         await client.query('BEGIN');
         
-        // 1. Get existing interval to find dia_id
-        const currentRes = await client.query('SELECT int_dia_id, int_cli_id FROM intervalo WHERE int_id = $1', [id]);
-        if (currentRes.rows.length === 0) throw new Error('Intervalo not found');
+        // 1. Get existing interval to find dia_id and verify ownership
+        const currentRes = await client.query('SELECT int_dia_id, int_cli_id FROM intervalo WHERE int_id = $1 AND usu_id = $2', [id, userId]);
+        if (currentRes.rows.length === 0) throw new Error('Intervalo not found or access denied');
         const { int_dia_id, int_cli_id: oldCliId } = currentRes.rows[0];
         
         // 2. Get Day Data and Valor Hora if client or date changed (date can't change via interval update, but client can)
@@ -106,8 +106,8 @@ export const update = async (id, data) => {
         const valorHora = vhRes.rows[0]?.vh_valor || 0;
         
         // 3. Recalculate duration and total
-        const finalInicio = inicio || (await client.query('SELECT int_inicio FROM intervalo WHERE int_id = $1', [id])).rows[0].int_inicio;
-        const finalFim = fim !== undefined ? fim : (await client.query('SELECT int_fim FROM intervalo WHERE int_id = $1', [id])).rows[0].int_fim;
+        const finalInicio = inicio || (await client.query('SELECT int_inicio FROM intervalo WHERE int_id = $1 AND usu_id = $2', [id, userId])).rows[0].int_inicio;
+        const finalFim = fim !== undefined ? fim : (await client.query('SELECT int_fim FROM intervalo WHERE int_id = $1 AND usu_id = $2', [id, userId])).rows[0].int_fim;
         
         const horas = finalFim ? calculateDuration(finalInicio, finalFim) : 0;
         const valorTotal = horas * valorHora;
@@ -128,8 +128,9 @@ export const update = async (id, data) => {
         fields.push(`int_valor_total = $${idx++}`); values.push(valorTotal);
         
         values.push(id);
+        values.push(userId);
         const result = await client.query(
-            `UPDATE intervalo SET ${fields.join(', ')} WHERE int_id = $${idx} RETURNING *`,
+            `UPDATE intervalo SET ${fields.join(', ')} WHERE int_id = $${idx} AND usu_id = $${idx + 1} RETURNING *`,
             values
         );
         
@@ -138,10 +139,10 @@ export const update = async (id, data) => {
         
         // 6. Recalculate Mes Totals
         const anoMes = new Date(diaData).toISOString().substring(0, 7);
-        await mesService.recalculateMonthInternal(client, anoMes);
+        await mesService.recalculateMonthInternal(client, anoMes, userId);
         
         // Fetch updated monthly total
-        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1 AND usu_id = $2', [anoMes, userId]);
         const totalMes = mesRes.rows[0]?.mes_realizado || 0;
 
         await client.query('COMMIT');
@@ -175,33 +176,33 @@ export const recalculateDiaInternal = async (client, dia_id) => {
   );
 };
 
-export const remove = async (id) => {
+export const remove = async (id, userId) => {
     const client = await getClient();
     try {
         await client.query('BEGIN');
         
-        // Fetch interval details and corresponding day date before deletion
+        // Fetch interval details and corresponding day date before deletion (verify ownership)
         const intRes = await client.query(
             `SELECT i.int_dia_id, i.int_inicio, i.int_fim, i.int_horas, d.dia_data 
              FROM intervalo i 
              JOIN dia d ON d.dia_id = i.int_dia_id 
-             WHERE i.int_id = $1`, 
-            [id]
+             WHERE i.int_id = $1 AND i.usu_id = $2`, 
+            [id, userId]
         );
-        if (intRes.rows.length === 0) throw new Error('Intervalo not found');
+        if (intRes.rows.length === 0) throw new Error('Intervalo not found or access denied');
         const { int_dia_id, int_inicio, int_fim, int_horas, dia_data } = intRes.rows[0];
         
-        await client.query('DELETE FROM intervalo WHERE int_id = $1', [id]);
+        await client.query('DELETE FROM intervalo WHERE int_id = $1 AND usu_id = $2', [id, userId]);
         
         await recalculateDiaInternal(client, int_dia_id);
         
         const anoMes = new Date(dia_data).toISOString().substring(0, 7);
-        await mesService.recalculateMonthInternal(client, anoMes);
+        await mesService.recalculateMonthInternal(client, anoMes, userId);
         
         // Fetch updated monthly total
-        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+        const mesRes = await client.query('SELECT mes_realizado FROM mes WHERE mes_ano_mes = $1 AND usu_id = $2', [anoMes, userId]);
         const totalMes = mesRes.rows[0]?.mes_realizado || 0;
-
+ 
         await client.query('COMMIT');
 
         // Trigger push notification to all users

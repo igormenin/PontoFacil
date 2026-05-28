@@ -9,6 +9,14 @@ let clienteId;
 let diaId;
 
 before(async () => {
+  // Garantia de segurança: não rodar testes automatizados na base de dados Neon (produção)
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (dbUrl.includes('neon.tech')) {
+    console.error('\n❌ [ERRO DE SEGURANÇA] Bloqueado: Tentativa de executar testes no banco de PRODUÇÃO (Neon).');
+    console.error('Por favor, ajuste o seu arquivo .env para apontar para o banco local antes de rodar os testes.\n');
+    process.exit(1);
+  }
+
   return new Promise((resolve) => {
     // Start server on random port
     server = app.listen(0, async () => {

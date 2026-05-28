@@ -60,7 +60,8 @@ export const sendNotification = async ({ userIds, subscriptionIds, title, messag
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Key ${apiKey}`
-        }
+        },
+        timeout: 1000
       }
     );
 

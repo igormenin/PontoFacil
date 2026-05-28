@@ -1,7 +1,7 @@
 import { query, getClient } from '../../config/database.js';
 
-export const getOrCreateMonth = async (anoMes) => {
-  const result = await query('SELECT * FROM mes WHERE mes_ano_mes = $1', [anoMes]);
+export const getOrCreateMonth = async (anoMes, userId) => {
+  const result = await query('SELECT * FROM mes WHERE mes_ano_mes = $1 AND usu_id = $2', [anoMes, userId]);
   if (result.rows.length > 0) return result.rows[0];
 
   const client = await getClient();
@@ -10,8 +10,8 @@ export const getOrCreateMonth = async (anoMes) => {
 
     // Create Mes
     const mesResult = await client.query(
-      'INSERT INTO mes (mes_ano_mes) VALUES ($1) RETURNING *',
-      [anoMes]
+      'INSERT INTO mes (mes_ano_mes, usu_id) VALUES ($1, $2) RETURNING *',
+      [anoMes, userId]
     );
     const mes = mesResult.rows[0];
 
@@ -49,13 +49,13 @@ export const getOrCreateMonth = async (anoMes) => {
       }
 
       await client.query(
-        'INSERT INTO dia (dia_data, dia_mes_id, dia_tipo, dia_conta_util) VALUES ($1, $2, $3, $4)',
-        [dayStr, mes.mes_id, tipo, contaUtil]
+        'INSERT INTO dia (dia_data, dia_mes_id, dia_tipo, dia_conta_util, usu_id) VALUES ($1, $2, $3, $4, $5)',
+        [dayStr, mes.mes_id, tipo, contaUtil, userId]
       );
     }
 
     // Initial recalculation
-    const updatedMes = await recalculateMonthInternal(client, anoMes);
+    const updatedMes = await recalculateMonthInternal(client, anoMes, userId);
 
     await client.query('COMMIT');
     return updatedMes;
@@ -67,7 +67,7 @@ export const getOrCreateMonth = async (anoMes) => {
   }
 };
 
-export const recalculateMonthInternal = async (client, anoMes) => {
+export const recalculateMonthInternal = async (client, anoMes, userId) => {
   // Update totals for the month
   const result = await client.query(
     `UPDATE mes 
@@ -76,9 +76,9 @@ export const recalculateMonthInternal = async (client, anoMes) => {
        mes_dias_trabalhados = (SELECT COUNT(*) FROM dia WHERE dia_mes_id = mes.mes_id AND dia_horas_total > 0),
        mes_realizado = (SELECT COALESCE(SUM(dia_horas_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id),
        mes_valor_total = (SELECT COALESCE(SUM(dia_valor_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id)
-     WHERE mes_ano_mes = $1
+     WHERE mes_ano_mes = $1 AND usu_id = $2
      RETURNING *`,
-    [anoMes]
+    [anoMes, userId]
   );
   
   // Update estimativa if mes_horas_dia is set (default 8)
@@ -93,7 +93,7 @@ export const recalculateMonthInternal = async (client, anoMes) => {
   return result.rows[0];
 };
 
-export const listAll = async () => {
-    const result = await query('SELECT * FROM mes ORDER BY mes_ano_mes DESC');
+export const listAll = async (userId) => {
+    const result = await query('SELECT * FROM mes WHERE usu_id = $1 ORDER BY mes_ano_mes DESC', [userId]);
     return result.rows;
 };

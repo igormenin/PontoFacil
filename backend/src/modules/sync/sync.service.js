@@ -13,6 +13,39 @@ const getPkName = (table) => {
   return map[table] || `${table.substring(0, 3)}_id`;
 };
 
+const recalculateDiaInternal = async (client, diaId) => {
+  await client.query(
+    `UPDATE dia 
+     SET 
+       dia_horas_total = (SELECT COALESCE(SUM(int_horas), 0) FROM intervalo WHERE int_dia_id = dia.dia_id AND deleted_at IS NULL),
+       dia_valor_total = (SELECT COALESCE(SUM(int_valor_total), 0) FROM intervalo WHERE int_dia_id = dia.dia_id AND deleted_at IS NULL)
+     WHERE dia_id = $1`,
+    [diaId]
+  );
+};
+
+const recalculateMonthInternal = async (client, anoMes, userId) => {
+  const result = await client.query(
+    `UPDATE mes 
+     SET 
+       mes_dias_uteis = (SELECT COUNT(*) FROM dia WHERE dia_mes_id = mes.mes_id AND dia_conta_util = TRUE),
+       mes_dias_trabalhados = (SELECT COUNT(*) FROM dia WHERE dia_mes_id = mes.mes_id AND dia_horas_total > 0),
+       mes_realizado = (SELECT COALESCE(SUM(dia_horas_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id),
+       mes_valor_total = (SELECT COALESCE(SUM(dia_valor_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id)
+     WHERE mes_ano_mes = $1 AND usu_id = $2
+     RETURNING *`,
+    [anoMes, userId]
+  );
+  
+  const mes = result.rows[0];
+  if (mes) {
+      await client.query(
+          'UPDATE mes SET mes_estimativa = mes_dias_uteis * mes_horas_dia WHERE mes_id = $1',
+          [mes.mes_id]
+      );
+  }
+};
+
 export const syncService = {
   /**
    * Processes a batch of mutations from a device.
@@ -25,6 +58,7 @@ export const syncService = {
     try {
       await client.query('BEGIN');
       const results = [];
+      const affectedDayIds = new Set();
 
       for (const mutation of mutations) {
         const { table, operation, localId, payload } = mutation;
@@ -129,17 +163,42 @@ export const syncService = {
 
           if (finalRow) {
             results.push({ localId, serverId: finalRow[getPkName(table)], status: 'success' });
+            if (table === 'intervalo') {
+              const dId = payload.intDiaId || payload.int_dia_id || finalRow.int_dia_id;
+              if (dId) affectedDayIds.add(Number(dId));
+            }
           } else {
             // Still no row? This is a genuine error or conflict with another user's data
             results.push({ localId, status: 'error', message: 'Record exists and could not be claimed' });
           }
         } else if (operation === 'DELETE') {
+          if (table === 'intervalo') {
+            const findRes = await client.query(
+              `SELECT int_dia_id FROM intervalo WHERE usu_id = $1 AND ((device_id = $2 AND local_id = $3) OR (int_id = $4))`,
+              [userId, deviceId, localId, mutation.serverId]
+            );
+            if (findRes.rows.length > 0 && findRes.rows[0].int_dia_id) {
+              affectedDayIds.add(Number(findRes.rows[0].int_dia_id));
+            }
+          }
           await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() 
              WHERE usu_id = $1 AND ((device_id = $2 AND local_id = $3) OR (${getPkName(table)} = $4))`,
             [userId, deviceId, localId, mutation.serverId]
           );
           results.push({ localId, status: 'deleted' });
+        }
+      }
+
+      // Recalculate all affected days and months
+      for (const diaId of affectedDayIds) {
+        if (!diaId) continue;
+        await recalculateDiaInternal(client, diaId);
+        
+        const diaRes = await client.query('SELECT dia_data FROM dia WHERE dia_id = $1', [diaId]);
+        if (diaRes.rows.length > 0) {
+          const anoMes = new Date(diaRes.rows[0].dia_data).toISOString().substring(0, 7);
+          await recalculateMonthInternal(client, anoMes, userId);
         }
       }
 

@@ -1,22 +1,22 @@
 import { query } from '../../config/database.js';
 
-export const listByMonth = async (anoMes) => {
+export const listByMonth = async (anoMes, userId) => {
   const result = await query(
     `SELECT d.*, 
-     (SELECT json_agg(i.* ORDER BY i.int_ordem) FROM intervalo i WHERE i.int_dia_id = d.dia_id) as intervalos
+     (SELECT json_agg(i.* ORDER BY i.int_ordem) FROM intervalo i WHERE i.int_dia_id = d.dia_id AND i.usu_id = $2) as intervalos
      FROM dia d 
      JOIN mes m ON d.dia_mes_id = m.mes_id 
-     WHERE m.mes_ano_mes = $1
+     WHERE m.mes_ano_mes = $1 AND d.usu_id = $2
      ORDER BY d.dia_data`,
-    [anoMes]
+    [anoMes, userId]
   );
   return result.rows;
 };
 
-export const update = async (data, { dia_observacao }) => {
+export const update = async (data, { dia_observacao }, userId) => {
   const result = await query(
-    'UPDATE dia SET dia_observacao = $1 WHERE dia_data = $2 RETURNING *',
-    [dia_observacao, data]
+    'UPDATE dia SET dia_observacao = $1 WHERE dia_data = $2 AND usu_id = $3 RETURNING *',
+    [dia_observacao, data, userId]
   );
   return result.rows[0];
 };
