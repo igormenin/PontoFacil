@@ -10,6 +10,13 @@ import { useUiStore } from '../store/uiStore';
 import { convertToCSV, generateFilename } from '../utils/exportUtils';
 import Footer from '../components/Footer';
 
+const formatHours = (value) => {
+  if (!value || value === 0) return '0h';
+  const hours = Math.floor(value);
+  const minutes = Math.round((value % 1) * 60);
+  return `${hours}h${minutes.toString().padStart(2, '0')}`;
+};
+
 const Dashboard = ({ onSelectMes, onShowClientes }) => {
   const { user, logout } = useAuthStore();
   const { 
@@ -173,23 +180,12 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                   <Download size={20} /> Exportar
               </button>
               
-              <div className="relative flex items-center bg-[#631660] rounded-xl overflow-hidden shadow-lg hover:bg-[#460045] transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                 <input 
-                   type="month"
-                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                   max={`${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`}
-                   onChange={(e) => {
-                     if (e.target.value) {
-                       handleMonthSelection(e.target.value);
-                       e.target.value = ''; // Reset to allow clicking the same month again
-                     }
-                   }}
-                   title="Ir para qualquer mês"
-                 />
-                 <button className="px-6 py-3 text-white font-bold whitespace-nowrap pointer-events-none">
-                   Ir para o Mês...
-                 </button>
-              </div>
+              <button 
+                onClick={handleMonthClick}
+                className="px-6 py-3 bg-[#631660] text-white font-bold whitespace-nowrap rounded-xl shadow-lg hover:bg-[#460045] transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Ir para o Mês...
+              </button>
               
           </div>
         </header>
@@ -255,7 +251,10 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                 annualHistory.map((item, idx) => {
                   const height = Math.min(100, (item.value / (item.meta || 1)) * 100);
                   return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-4 group">
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+                      <span className="text-xs font-bold text-[#631660] transition-all duration-300 transform group-hover:text-[#460045] group-hover:scale-105">
+                        {formatHours(item.value)}
+                      </span>
                       <div className="relative w-full flex flex-col items-center justify-end h-48 bg-[#f4ebf6] rounded-2xl overflow-hidden">
                         <div 
                           style={{ height: `${height}%` }}
