@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 
-const TimePicker = ({ value, onChange, placeholder = "00:00", className = "" }) => {
-  const [internalValue, setInternalValue] = useState(value || '');
+const formatTimeHHMM = (val) => {
+  if (!val) return '';
+  const parts = val.split(':');
+  if (parts.length >= 2) {
+    return `${parts[0].substring(0, 2).padStart(2, '0')}:${parts[1].substring(0, 2).padStart(2, '0')}`;
+  }
+  return val;
+};
+
+const TimePicker = ({ value, onChange, onBlur, placeholder = "00:00", className = "" }) => {
+  const [prevValue, setPrevValue] = useState(value);
+  const [internalValue, setInternalValue] = useState(formatTimeHHMM(value) || '');
+
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInternalValue(formatTimeHHMM(value) || '');
+  }
 
   const handleChange = (e) => {
     let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
@@ -30,6 +45,7 @@ const TimePicker = ({ value, onChange, placeholder = "00:00", className = "" }) 
       type="text"
       value={internalValue}
       onChange={handleChange}
+      onBlur={onBlur}
       placeholder={placeholder}
       maxLength={5}
       className={`px-4 py-3 bg-[#f4ebf6] border-b-2 border-transparent focus:border-[#631660] transition-all outline-none rounded-t-lg font-mono font-bold text-center text-lg ${className}`}

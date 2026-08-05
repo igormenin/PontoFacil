@@ -10,6 +10,14 @@ import TimePicker from '../components/TimePicker';
 import { toast } from 'react-hot-toast';
 import { convertToCSV, generateFilename } from '../utils/exportUtils';
 import Footer from '../components/Footer';
+const formatTimeHHMM = (timeStr) => {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length >= 2) {
+    return `${parts[0].substring(0, 2).padStart(2, '0')}:${parts[1].substring(0, 2).padStart(2, '0')}`;
+  }
+  return timeStr;
+};
 
 const Dia = ({ dia, onBack }) => {
   const { clientes, selectedMes, addIntervalo, updateIntervalo, removeIntervalo, loading } = useDataStore();
@@ -20,6 +28,7 @@ const Dia = ({ dia, onBack }) => {
   
   const [showModal, setShowModal] = useState(false);
   const [editingIntervalo, setEditingIntervalo] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
     cliId: clientes[0]?.cliId || '',
     ordem: (currentDia.intervalos?.length || 0) + 1,
@@ -30,6 +39,7 @@ const Dia = ({ dia, onBack }) => {
 
   const handleOpenAdd = () => {
     setEditingIntervalo(null);
+    setShowPreview(false);
     setFormData({
       cliId: clientes[0]?.cliId || '',
       ordem: (currentDia.intervalos?.length || 0) + 1,
@@ -42,11 +52,12 @@ const Dia = ({ dia, onBack }) => {
 
   const handleOpenEdit = (intervalo) => {
     setEditingIntervalo(intervalo);
+    setShowPreview(true);
     setFormData({
       cliId: intervalo.intCliId,
       ordem: intervalo.intOrdem,
-      inicio: intervalo.intInicio,
-      fim: intervalo.intFim || '',
+      inicio: formatTimeHHMM(intervalo.intInicio),
+      fim: formatTimeHHMM(intervalo.intFim || ''),
       anotacoes: intervalo.intAnotacoes || ''
     });
     setShowModal(true);
@@ -57,6 +68,15 @@ const Dia = ({ dia, onBack }) => {
     if (!formData.cliId || !formData.inicio) {
       toast.error('Cliente e Início são obrigatórios');
       return;
+    }
+
+    if (formData.inicio && formData.fim) {
+      const [h1, m1] = formData.inicio.split(':').map(Number);
+      const [h2, m2] = formData.fim.split(':').map(Number);
+      if (h1 > h2 || (h1 === h2 && m1 > m2)) {
+        toast.error('A hora de início não pode ser maior que a hora final');
+        return;
+      }
     }
 
     const intervalData = {
@@ -84,6 +104,24 @@ const Dia = ({ dia, onBack }) => {
       toast.error(errorMsg);
     }
   };
+
+  const getCalculatedHours = () => {
+    if (!formData.inicio || !formData.fim || formData.inicio.length !== 5 || formData.fim.length !== 5) {
+      return { hours: null, error: null };
+    }
+    const [h1, m1] = formData.inicio.split(':').map(Number);
+    const [h2, m2] = formData.fim.split(':').map(Number);
+
+    if (h1 > h2 || (h1 === h2 && m1 > m2)) {
+      return { hours: null, error: 'A hora de início não pode ser maior que a hora final.' };
+    }
+
+    const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+    const hours = (diffMinutes / 60).toFixed(2);
+    return { hours, error: null };
+  };
+
+  const { hours: previewHours, error: previewError } = getCalculatedHours();
 
   const handleRemove = async (id) => {
     showConfirm(
@@ -311,6 +349,7 @@ const Dia = ({ dia, onBack }) => {
                             <TimePicker 
                                 value={formData.inicio} 
                                 onChange={(val) => setFormData({...formData, inicio: val})}
+                                onBlur={() => setShowPreview(true)}
                                 className="w-full text-2xl"
                             />
                         </div>
@@ -319,10 +358,32 @@ const Dia = ({ dia, onBack }) => {
                             <TimePicker 
                                 value={formData.fim} 
                                 onChange={(val) => setFormData({...formData, fim: val})}
+                                onBlur={() => setShowPreview(true)}
                                 className="w-full text-2xl"
                             />
                         </div>
                     </div>
+
+                    {/* Visualização de Horas Calculadas */}
+                    {showPreview && (previewHours !== null || previewError) && (
+                        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all animate-in fade-in slide-in-from-top-1 duration-200 ${
+                            previewError 
+                                ? 'bg-[#ffdad6] border-[#ffb4ab] text-[#ba1a1a]' 
+                                : 'bg-[#f4ebf6] border-[#e6d0e9] text-[#631660]'
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                {previewError ? <AlertCircle size={20} className="shrink-0" /> : <Timer size={20} className="shrink-0 animate-pulse" />}
+                                <span className="font-bold text-sm">
+                                    {previewError ? previewError : 'Horas calculadas para este registro:'}
+                                </span>
+                            </div>
+                            {previewHours !== null && !previewError && (
+                                <span className="text-2xl font-black bg-[#631660] text-white px-3 py-1 rounded-xl shadow-sm">
+                                    {previewHours}h
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <div className="flex justify-between items-end">

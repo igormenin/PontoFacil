@@ -46,6 +46,54 @@ const recalculateMonthInternal = async (client, anoMes, userId) => {
   }
 };
 
+const createMonthWithDaysInternal = async (client, anoMes, userId) => {
+  const mesResult = await client.query(
+    'INSERT INTO mes (mes_ano_mes, usu_id, updated_at) VALUES ($1, $2, NOW()) RETURNING *',
+    [anoMes, userId]
+  );
+  const mes = mesResult.rows[0];
+
+  const [year, month] = anoMes.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+
+  for (let d = 1; d <= lastDay; d++) {
+    const dayStr = `${anoMes}-${String(d).padStart(2, '0')}`;
+    const date = new Date(dayStr);
+    const dayOfWeek = date.getUTCDay(); // 0=Sun, 6=Sat
+
+    const dateParts = dayStr.split('-');
+    const monthDayStr = `${dateParts[1]}-${dateParts[2]}`;
+
+    const ferResult = await client.query(
+      `SELECT * FROM feriado WHERE fer_data = $1 OR (fer_fixo = TRUE AND to_char(fer_data, 'MM-DD') = $2)`,
+      [dayStr, monthDayStr]
+    );
+    const isFeriado = ferResult.rows.length > 0;
+
+    let tipo = 'UTIL';
+    let contaUtil = true;
+
+    if (isFeriado) {
+      tipo = 'FERIADO';
+      contaUtil = false;
+    } else if (dayOfWeek === 0) {
+      tipo = 'DOMINGO';
+      contaUtil = false;
+    } else if (dayOfWeek === 6) {
+      tipo = 'SABADO';
+      contaUtil = false;
+    }
+
+    await client.query(
+      'INSERT INTO dia (dia_data, dia_mes_id, dia_tipo, dia_conta_util, usu_id, updated_at) VALUES ($1, $2, $3, $4, $5, NOW()) ON CONFLICT DO NOTHING',
+      [dayStr, mes.mes_id, tipo, contaUtil, userId]
+    );
+  }
+
+  await recalculateMonthInternal(client, anoMes, userId);
+  return mes;
+};
+
 export const syncService = {
   /**
    * Processes a batch of mutations from a device.
@@ -85,11 +133,8 @@ export const syncService = {
              if (mesResult.rows.length > 0) {
                snakePayload.dia_mes_id = mesResult.rows[0].mes_id;
              } else {
-               const insertMes = await client.query(
-                 `INSERT INTO mes (usu_id, mes_ano_mes, updated_at) VALUES ($1, $2, NOW()) RETURNING mes_id`,
-                 [userId, mesAnoMes]
-               );
-               snakePayload.dia_mes_id = insertMes.rows[0].mes_id;
+               const newMes = await createMonthWithDaysInternal(client, mesAnoMes, userId);
+               snakePayload.dia_mes_id = newMes.mes_id;
              }
           }
 
