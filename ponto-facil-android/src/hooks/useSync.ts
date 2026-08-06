@@ -130,7 +130,18 @@ export function useSync() {
       
       let pullCount = 0;
 
-      for (const [rawTable, records] of Object.entries(changes)) {
+      // Define exact table pull processing order to preserve foreign key dependencies
+      const PULL_TABLE_ORDER = ['cliente', 'mes', 'dia', 'intervalo', 'feriado', 'valor_hora', 'valores_hora_base', 'valor_hora_historico'];
+      const rawEntries = Object.entries(changes);
+      rawEntries.sort(([a], [b]) => {
+        const normA = TABLE_MAP[a] || a;
+        const normB = TABLE_MAP[b] || b;
+        const idxA = PULL_TABLE_ORDER.indexOf(normA);
+        const idxB = PULL_TABLE_ORDER.indexOf(normB);
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
+
+      for (const [rawTable, records] of rawEntries) {
         const table = TABLE_MAP[rawTable] || rawTable;
         const items = records as any[];
         if (items.length === 0) continue;
@@ -194,10 +205,29 @@ export function useSync() {
           
           // Resolve Foreign Keys on Pull
           if (table === 'intervalo') {
-            const localDia = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaId = ?', [remote.intDiaId]);
+            let localDia = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaId = ?', [remote.intDiaId]);
+            if (!localDia && remote.intDiaData) {
+              localDia = await db.getFirstAsync<any>('SELECT id FROM dia WHERE diaData = ?', [remote.intDiaData]);
+            }
+
             const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [remote.intCliId]);
-            if (localDia) remote.intDiaId = localDia.id;
-            if (localCli) remote.intCliId = localCli.id;
+            
+            if (localDia) {
+              remote.intDiaId = localDia.id;
+            }
+
+            if (localCli) {
+              remote.intCliId = localCli.id;
+            } else {
+              // Se o cliente local não existe, verifica se existe cliente com ID primário local idêntico ao remoto ou pula
+              const fallbackCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE id = ?', [remote.intCliId]);
+              if (fallbackCli) {
+                remote.intCliId = fallbackCli.id;
+              } else {
+                console.warn(`[Sync] Pulando intervalo ${serverId} pois o cliente associado (cliId=${remote.intCliId}) não existe localmente.`);
+                continue;
+              }
+            }
           } else if (table === 'valor_hora') {
             const localCli = await db.getFirstAsync<any>('SELECT id FROM cliente WHERE cliId = ?', [remote.vhCliId]);
             if (localCli) remote.vhCliId = localCli.id;

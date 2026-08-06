@@ -6,11 +6,12 @@ import {
   CalendarDays, Calculator, ListTodo
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import api from '../api/client';
 import { useUiStore } from '../store/uiStore';
 import { convertToCSV, generateFilename } from '../utils/exportUtils';
 import Footer from '../components/Footer';
 
-const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
+const Mes = ({ anoMes: anoMesProp, onSelectDia }) => {
   const { selectedMes, fetchMesDetail, loading, meses } = useDataStore();
   const { showConfirm } = useUiStore();
   const [filter, setFilter] = useState('ALL'); // ALL, UTIL, FERIADO
@@ -19,16 +20,17 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
   // Default to current month if no specific month is provided
   const [localAnoMes, setLocalAnoMes] = useState(anoMesProp || new Date().toISOString().substring(0, 7));
 
-  // Horas/dia configurável por mês, persistido no localStorage
+  // Horas/dia configurável por mês, derivado do localAnoMes
   const [horasDia, setHorasDia] = useState(() => {
     const saved = localStorage.getItem(`pontofacil_horasDia_${anoMesProp || new Date().toISOString().substring(0, 7)}`);
     return saved ? Number(saved) : 8;
   });
 
-  useEffect(() => {
-    const saved = localStorage.getItem(`pontofacil_horasDia_${localAnoMes}`);
+  const handleSetLocalAnoMes = (newAnoMes) => {
+    const saved = localStorage.getItem(`pontofacil_horasDia_${newAnoMes}`);
     setHorasDia(saved ? Number(saved) : 8);
-  }, [localAnoMes]);
+    setLocalAnoMes(newAnoMes);
+  };
 
   const saveHorasDia = (value) => {
     const num = Math.max(1, Math.min(24, Number(value) || 8));
@@ -52,10 +54,18 @@ const Mes = ({ anoMes: anoMesProp, onBack, onSelectDia }) => {
       showConfirm(
         'Mês Sem Registros',
         `O mês ${newAnoMes} não possui lançamentos anteriores. Deseja navegar para este período mesmo assim?`,
-        () => setLocalAnoMes(newAnoMes)
+        async () => {
+          try {
+            await api.get(`/mes/${newAnoMes}`);
+            await useDataStore.getState().fetchMeses();
+          } catch (e) {
+            console.error('Erro ao inicializar mês:', e);
+          }
+          handleSetLocalAnoMes(newAnoMes);
+        }
       );
     } else {
-      setLocalAnoMes(newAnoMes);
+      handleSetLocalAnoMes(newAnoMes);
     }
   };
 

@@ -5,8 +5,9 @@ import {
   Users, Clock, Wallet, CheckCircle,
   BarChart, PieChart, Download
 } from 'lucide-react';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { useUiStore } from '../store/uiStore';
+import api from '../api/client';
 import { convertToCSV, generateFilename } from '../utils/exportUtils';
 import Footer from '../components/Footer';
 
@@ -17,8 +18,27 @@ const formatHours = (value) => {
   return `${hours}h${minutes.toString().padStart(2, '0')}`;
 };
 
+const StatCard = ({ title, value, subValue, icon: IconComponent, color, loading }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#eee5f0] flex flex-col gap-4 animate-in fade-in duration-500">
+    <div className="flex justify-between items-start">
+      <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
+        {IconComponent && <IconComponent size={24} className="text-[#631660]" />}
+      </div>
+    </div>
+    <div>
+      <p className="text-sm font-bold text-[#50434d] uppercase tracking-wider">{title}</p>
+      {loading ? (
+        <div className="h-8 w-24 bg-[#f4ebf6] animate-pulse rounded-md mt-1" />
+      ) : (
+        <h3 className="text-3xl font-black text-[#1e1a22] mt-1">{value}</h3>
+      )}
+      {subValue && <p className="text-xs font-semibold text-[#82737d] mt-1">{subValue}</p>}
+    </div>
+  </div>
+);
+
 const Dashboard = ({ onSelectMes, onShowClientes }) => {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { 
     meses, clientes, selectedMes, 
     fetchMeses, fetchClientes, fetchMesDetail, 
@@ -131,7 +151,15 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
       showConfirm(
         'Mês Sem Registros',
         `O mês ${anoMes} não possui lançamentos anteriores. Deseja navegar para este período mesmo assim?`,
-        () => onSelectMes(anoMes)
+        async () => {
+          try {
+            await api.get(`/mes/${anoMes}`);
+            await useDataStore.getState().fetchMeses();
+          } catch (e) {
+            console.error('Erro ao inicializar mês:', e);
+          }
+          onSelectMes(anoMes);
+        }
       );
     } else {
       onSelectMes(anoMes);
@@ -141,25 +169,6 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
   const handleMonthClick = () => {
     handleMonthSelection(currentMonth.mesAnoMes);
   };
-
-  const StatCard = ({ title, value, subValue, icon: Icon, color, loading }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#eee5f0] flex flex-col gap-4 animate-in fade-in duration-500">
-      <div className="flex justify-between items-start">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-          <Icon size={24} className="text-[#631660]" />
-        </div>
-      </div>
-      <div>
-        <p className="text-sm font-bold text-[#50434d] uppercase tracking-wider">{title}</p>
-        {loading ? (
-          <div className="h-8 w-24 bg-[#f4ebf6] animate-pulse rounded-md mt-1" />
-        ) : (
-          <h3 className="text-3xl font-black text-[#1e1a22] mt-1">{value}</h3>
-        )}
-        {subValue && <p className="text-xs font-semibold text-[#82737d] mt-1">{subValue}</p>}
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#fff7ff]">
@@ -283,7 +292,7 @@ const Dashboard = ({ onSelectMes, onShowClientes }) => {
                    Nenhum faturamento registrado <br/> no mês atual.
                  </div>
                ) : (
-                 topClients.map((client, idx) => (
+                 topClients.map((client) => (
                    <div key={client.id} className="group cursor-pointer" onClick={onShowClientes}>
                       <div className="flex justify-between items-end mb-2">
                         <p className="font-black text-[#1e1a22] text-sm group-hover:text-[#631660] transition-colors">{client.name}</p>
