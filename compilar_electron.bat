@@ -42,4 +42,16 @@ echo   SUCESSO! Os arquivos estao em:
 echo   pontofacil-electron\release
 echo ===================================================
 echo.
-pause
+
+set /p install="Deseja instalar a nova versao agora? (S/N) [N]: "
+if /I "%install%"=="S" goto run_installer
+if /I "%install%"=="Y" goto run_installer
+exit /b 0
+
+:run_installer
+echo Iniciando o instalador...
+for /f "delims=" %%F in ('dir /b /o-d "release\*Setup.exe"') do (
+    start "" "release\%%F"
+    exit /b 0
+)
+exit /b 0

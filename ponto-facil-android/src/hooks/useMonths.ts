@@ -76,12 +76,7 @@ export function useMonths() {
 
       for (const day of days) {
         // Calculate totals from intervals for this day
-        const dayIntervals = await db.getAllAsync<any>(
-          'SELECT SUM(intValorTotal) as valTotal FROM intervalo WHERE intDiaId = ?',
-          [day.id]
-        );
-
-        valueTotal += dayIntervals[0]?.valTotal || 0;
+        // We will calculate valueTotal grouped by rate later.
         
         const intervals = await db.getAllAsync<any>(
           'SELECT intInicio, intFim FROM intervalo WHERE intDiaId = ?',
@@ -113,6 +108,32 @@ export function useMonths() {
 
         if (day.diaTipo && day.diaTipo.toUpperCase() === 'UTIL') workingDays++;
         if (day.diaHorasMeta && day.diaHorasMeta > 0) dailyMeta = day.diaHorasMeta;
+      }
+      
+      // NOVO CÁLCULO EXATO DO VALOR TOTAL (Igual ao backend)
+      // Agrupamos todas as horas do mês por taxa de hora antes de multiplicar.
+      const allIntervals = await db.getAllAsync<any>(
+          `SELECT i.intInicio, i.intFim, i.intValorHora 
+           FROM intervalo i
+           JOIN dia d ON i.intDiaId = d.id
+           WHERE d.diaData LIKE ? || '-%'`,
+          [anoMes]
+      );
+      
+      const rateMap = new Map<number, number>();
+      for (const int of allIntervals) {
+        if (int.intInicio && int.intFim) {
+          const [h1, m1] = int.intInicio.split(':').map(Number);
+          const [h2, m2] = int.intFim.split(':').map(Number);
+          const hours = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+          const rate = int.intValorHora || 0;
+          
+          rateMap.set(rate, (rateMap.get(rate) || 0) + hours);
+        }
+      }
+      
+      for (const [rate, hours] of rateMap.entries()) {
+        valueTotal += (hours * rate);
       }
       
       // If we found days but no UTIL days, and it's a util month, fallback to 22
