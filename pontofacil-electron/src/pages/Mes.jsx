@@ -98,10 +98,16 @@ const Mes = ({ anoMes: anoMesProp, onSelectDia }) => {
     }
   };
 
+  const currentMonthData = meses.find(m => m.mesAnoMes === localAnoMes);
+
   const stats = {
-    totalLiquidado: selectedMes?.reduce((acc, dia) => acc + Number(dia.diaValorTotal || 0), 0) || 0,
+    totalLiquidado: currentMonthData && Number(currentMonthData.mesValorTotal) > 0 
+      ? Number(currentMonthData.mesValorTotal) 
+      : selectedMes?.reduce((acc, dia) => acc + Number(dia.diaValorTotal || 0), 0) || 0,
     diasUteis: selectedMes?.filter(dia => dia.diaTipo === 'UTIL').length || 0,
-    totalHoras: selectedMes?.reduce((acc, dia) => acc + Number(dia.diaHorasTotal || 0), 0) || 0
+    totalHoras: currentMonthData && Number(currentMonthData.mesRealizado) > 0 
+      ? Number(currentMonthData.mesRealizado) 
+      : selectedMes?.reduce((acc, dia) => acc + Number(dia.diaHorasTotal || 0), 0) || 0
   };
   const horasPrevistas = stats.diasUteis * horasDia;
   const taxaHora = stats.totalHoras > 0 ? stats.totalLiquidado / stats.totalHoras : 0;
