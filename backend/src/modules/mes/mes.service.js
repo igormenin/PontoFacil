@@ -75,7 +75,16 @@ export const recalculateMonthInternal = async (client, anoMes, userId) => {
        mes_dias_uteis = (SELECT COUNT(*) FROM dia WHERE dia_mes_id = mes.mes_id AND dia_conta_util = TRUE),
        mes_dias_trabalhados = (SELECT COUNT(*) FROM dia WHERE dia_mes_id = mes.mes_id AND dia_horas_total > 0),
        mes_realizado = (SELECT COALESCE(SUM(dia_horas_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id),
-       mes_valor_total = (SELECT COALESCE(SUM(dia_valor_total), 0) FROM dia WHERE dia_mes_id = mes.mes_id)
+       mes_valor_total = (
+           SELECT COALESCE(SUM(horas_por_taxa * taxa), 0)
+           FROM (
+               SELECT int_valor_hora as taxa, SUM(int_horas) as horas_por_taxa 
+               FROM intervalo i
+               JOIN dia d ON i.int_dia_id = d.dia_id
+               WHERE d.dia_mes_id = mes.mes_id
+               GROUP BY int_valor_hora
+           ) t
+       )
      WHERE mes_ano_mes = $1 AND usu_id = $2
      RETURNING *`,
     [anoMes, userId]

@@ -170,7 +170,15 @@ export const recalculateDiaInternal = async (client, dia_id) => {
     `UPDATE dia 
      SET 
        dia_horas_total = (SELECT COALESCE(SUM(int_horas), 0) FROM intervalo WHERE int_dia_id = dia.dia_id),
-       dia_valor_total = (SELECT COALESCE(SUM(int_valor_total), 0) FROM intervalo WHERE int_dia_id = dia.dia_id)
+       dia_valor_total = (
+           SELECT COALESCE(SUM(horas_por_taxa * taxa), 0)
+           FROM (
+               SELECT int_valor_hora as taxa, SUM(int_horas) as horas_por_taxa 
+               FROM intervalo 
+               WHERE int_dia_id = dia.dia_id
+               GROUP BY int_valor_hora
+           ) t
+       )
      WHERE dia_id = $1`,
     [dia_id]
   );

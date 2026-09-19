@@ -106,6 +106,8 @@ ipcMain.handle('save-file', async (_event, { defaultName, content, filters }) =>
   return { success: false, cancelled: true };
 });
 
+app.setAppUserModelId('com.pontofacil.app');
+
 app.whenReady().then(() => {
   startBackend();
   createWindow();
