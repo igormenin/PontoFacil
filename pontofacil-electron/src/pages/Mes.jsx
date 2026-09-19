@@ -432,10 +432,10 @@ const Mes = ({ anoMes: anoMesProp, onSelectDia }) => {
                                         {Number(dia.diaHorasTotal) > 0 ? formatTime(dia.diaHorasTotal) : '--'}
                                     </p>
                                 </div>
-                                <div className="text-right w-24">
+                                <div className="text-right w-32">
                                     <p className="text-[10px] font-bold text-[#82737d] uppercase tracking-widest">Valor</p>
                                     <p className={`font-black text-xl ${Number(dia.diaValorTotal) > 0 ? 'text-[#631660]' : 'text-[#82737d]'}`}>
-                                        {Number(dia.diaValorTotal) > 0 ? `R$ ${Number(dia.diaValorTotal).toFixed(0)}` : 'R$ 0'}
+                                        {Number(dia.diaValorTotal) > 0 ? `R$ ${Number(dia.diaValorTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'R$ 0,00'}
                                     </p>
                                 </div>
                                 <div className="p-2 rounded-lg group-hover:bg-[#631660] group-hover:text-white transition-all text-[#d4c1cd]">
