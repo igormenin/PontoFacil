@@ -1,28 +1,29 @@
 import { query, getClient } from '../../config/database.js';
+import * as mesService from '../mes/mes.service.js';
 
-export const listByCliente = async (cli_id) => {
+export const listByCliente = async (cli_id, userId) => {
   const result = await query(
-    'SELECT * FROM valor_hora_base WHERE vh_cli_id = $1 ORDER BY vh_mes_inicio DESC',
-    [cli_id]
+    'SELECT * FROM valor_hora_base WHERE vh_cli_id = $1 AND usu_id = $2 ORDER BY vh_mes_inicio DESC',
+    [cli_id, userId]
   );
   return result.rows;
 };
 
-export const create = async (vh_cli_id, vh_valor, vh_mes_inicio) => {
+export const create = async (vh_cli_id, vh_valor, vh_mes_inicio, userId) => {
   const client = await getClient();
   try {
     await client.query('BEGIN');
     
     // Deactivate current active value for this client
     await client.query(
-      'UPDATE valor_hora_base SET vh_ativo = FALSE WHERE vh_cli_id = $1 AND vh_ativo = TRUE',
-      [vh_cli_id]
+      'UPDATE valor_hora_base SET vh_ativo = FALSE WHERE vh_cli_id = $1 AND vh_ativo = TRUE AND usu_id = $2',
+      [vh_cli_id, userId]
     );
     
     // Insert new active value
     const result = await client.query(
-      'INSERT INTO valor_hora_base (vh_cli_id, vh_valor, vh_mes_inicio, vh_ativo) VALUES ($1, $2, $3, TRUE) RETURNING *',
-      [vh_cli_id, vh_valor, vh_mes_inicio]
+      'INSERT INTO valor_hora_base (vh_cli_id, vh_valor, vh_mes_inicio, vh_ativo, usu_id) VALUES ($1, $2, $3, TRUE, $4) RETURNING *',
+      [vh_cli_id, vh_valor, vh_mes_inicio, userId]
     );
 
     // Retroactive update: Update intervals for this client that were registered on or after vh_mes_inicio
@@ -32,34 +33,34 @@ export const create = async (vh_cli_id, vh_valor, vh_mes_inicio) => {
       `UPDATE intervalo 
        SET int_valor_hora = $1, 
            int_valor_total = int_horas * $1
-       WHERE int_cli_id = $2 AND int_id IN (
+       WHERE int_cli_id = $2 AND usu_id = $4 AND int_id IN (
          SELECT i.int_id FROM intervalo i
          JOIN dia d ON i.int_dia_id = d.dia_id
-         WHERE d.dia_data >= $3
+         WHERE d.dia_data >= $3 AND i.usu_id = $4
        )`,
-      [vh_valor, vh_cli_id, vh_mes_inicio]
+      [vh_valor, vh_cli_id, vh_mes_inicio, userId]
     );
 
     // Recalculate all affected days
     const affectedDays = await client.query(
         `SELECT DISTINCT d.dia_id, d.dia_data FROM dia d
          JOIN intervalo i ON d.dia_id = i.int_dia_id
-         WHERE i.int_cli_id = $1 AND d.dia_data >= $2`,
-        [vh_cli_id, vh_mes_inicio]
+         WHERE i.int_cli_id = $1 AND d.dia_data >= $2 AND d.usu_id = $3`,
+        [vh_cli_id, vh_mes_inicio, userId]
     );
 
     for (const day of affectedDays.rows) {
         // Recalculate day
         await client.query(
             `UPDATE dia 
-             SET dia_valor_total = (SELECT COALESCE(SUM(int_valor_total), 0) FROM intervalo WHERE int_dia_id = $1)
-             WHERE dia_id = $1`,
-            [day.dia_id]
+             SET dia_valor_total = (SELECT COALESCE(SUM(int_valor_total), 0) FROM intervalo WHERE int_dia_id = $1 AND usu_id = $2)
+             WHERE dia_id = $1 AND usu_id = $2`,
+            [day.dia_id, userId]
         );
         
         // Recalculate month
         const anoMes = new Date(day.dia_data).toISOString().substring(0, 7);
-        await mesService.recalculateMonthInternal(client, anoMes);
+        await mesService.recalculateMonthInternal(client, anoMes, userId);
     }
     
     await client.query('COMMIT');

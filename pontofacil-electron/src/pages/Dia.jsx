@@ -123,6 +123,15 @@ const Dia = ({ dia, onBack }) => {
 
   const { hours: previewHours, error: previewError } = getCalculatedHours();
 
+  // Base de horas já lançadas no dia (desconsiderando o próprio registro em edição)
+  const baseHoursAlreadyLogged = (currentDia.intervalos || [])
+    .filter(int => !editingIntervalo || int.intId !== editingIntervalo.intId)
+    .reduce((acc, curr) => acc + (Number(curr.intHoras) || 0), 0);
+
+  const totalDayHours = previewHours !== null 
+    ? (baseHoursAlreadyLogged + Number(previewHours)).toFixed(2)
+    : baseHoursAlreadyLogged.toFixed(2);
+
   const handleRemove = async (id) => {
     showConfirm(
       'Excluir Intervalo',
@@ -364,23 +373,43 @@ const Dia = ({ dia, onBack }) => {
                         </div>
                     </div>
 
-                    {/* Visualização de Horas Calculadas */}
-                    {showPreview && (previewHours !== null || previewError) && (
-                        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all animate-in fade-in slide-in-from-top-1 duration-200 ${
+                    {/* Visualização de Horas Calculadas e Total do Dia */}
+                    {(showPreview || (formData.inicio?.length === 5 && formData.fim?.length === 5)) && (previewHours !== null || previewError) && (
+                        <div className={`p-4 rounded-2xl border-2 space-y-3 transition-all animate-in fade-in slide-in-from-top-1 duration-200 ${
                             previewError 
                                 ? 'bg-[#ffdad6] border-[#ffb4ab] text-[#ba1a1a]' 
                                 : 'bg-[#f4ebf6] border-[#e6d0e9] text-[#631660]'
                         }`}>
-                            <div className="flex items-center gap-3">
-                                {previewError ? <AlertCircle size={20} className="shrink-0" /> : <Timer size={20} className="shrink-0 animate-pulse" />}
-                                <span className="font-bold text-sm">
-                                    {previewError ? previewError : 'Horas calculadas para este registro:'}
-                                </span>
-                            </div>
-                            {previewHours !== null && !previewError && (
-                                <span className="text-2xl font-black bg-[#631660] text-white px-3 py-1 rounded-xl shadow-sm">
-                                    {previewHours}h
-                                </span>
+                            {previewError ? (
+                                <div className="flex items-center gap-3">
+                                    <AlertCircle size={20} className="shrink-0" />
+                                    <span className="font-bold text-sm">{previewError}</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Timer size={20} className="shrink-0 text-[#631660]" />
+                                            <span className="font-bold text-sm text-[#1e1a22]">
+                                                Horas calculadas para este registro:
+                                            </span>
+                                        </div>
+                                        <span className="text-2xl font-black bg-[#631660] text-white px-3 py-1 rounded-xl shadow-sm">
+                                            {previewHours}h
+                                        </span>
+                                    </div>
+                                    <div className="pt-2.5 border-t border-[#e6d0e9] flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-[#82737d]">
+                                            <Clock size={14} className="text-[#631660]" />
+                                            <span>
+                                                Total acumulado do dia ({baseHoursAlreadyLogged.toFixed(2)}h + {previewHours}h):
+                                            </span>
+                                        </div>
+                                        <span className="text-base font-black text-[#631660]">
+                                            {totalDayHours}h
+                                        </span>
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
